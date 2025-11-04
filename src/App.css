@@ -1,0 +1,165 @@
+.App {
+  text-align: center;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5dc; /* 米白色背景 */
+}
+
+.App-header {
+  background-color: #2196F3; /* 蓝色标题栏 */
+  padding: 5px 10px; /* 进一步减小高度 */
+  color: white; /* 白色文字 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 40px; /* 设置最小高度 */
+}
+
+.App-header h1 {
+  font-size: 18px; /* 减小标题字体大小 */
+  margin: 0; /* 移除默认边距 */
+}
+
+.new-page-button {
+  background-color: #ffffff;
+  border: 1px solid #ffffff;
+  color: #2196F3;
+  padding: 6px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  min-width: 80px;
+}
+
+.new-page-button:hover {
+  background-color: #e3f2fd;
+}
+
+/* 工具栏样式 */
+.toolbar {
+  background-color: #e3f2fd;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  border-bottom: 1px solid #bbdefb;
+  flex-wrap: wrap; /* 允许按钮换行以防空间不足 */
+}
+
+.format-button {
+  background-color: #ffffff;
+  border: 1px solid #2196F3;
+  color: #2196F3;
+  padding: 6px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  min-width: 120px; /* 确保中文文字能够完整显示 */
+}
+
+.format-button:hover {
+  background-color: #bbdefb;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.history-panel {
+  width: 250px; /* 稍微增加宽度以适应删除图标 */
+  background-color: #f0f8ff;
+  border-right: 1px solid #bbdefb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-header {
+  padding: 10px;
+  background-color: #e3f2fd;
+  border-bottom: 1px solid #bbdefb;
+}
+
+.history-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #2196F3;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.history-item:hover {
+  background-color: #e3f2fd;
+}
+
+.history-timestamp {
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.history-content {
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 20px; /* 为删除图标留出空间 */
+}
+
+.delete-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b6b;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.delete-icon:hover {
+  background-color: #ffebee;
+}
+
+.editor-container {
+  flex: 1;
+  padding: 10px;
+  background-color: #ffffff;
+}
