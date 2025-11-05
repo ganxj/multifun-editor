@@ -118,6 +118,11 @@ function App() {
     return content.substring(0, 50) + (content.length > 50 ? '...' : '');
   }
 
+  // 配置Monaco Editor以支持IP访问
+  function handleEditorWillMount(monaco) {
+    monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -179,6 +184,7 @@ function App() {
             value={code}
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
+            beforeMount={handleEditorWillMount}
             theme="vs"
             options={{
               minimap: { enabled: true },
