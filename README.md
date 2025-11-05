@@ -69,11 +69,19 @@ npm run build
 
 ## Docker部署
 
-### 构建Docker镜像
+### 构建步骤
 
-```bash
-docker build -t multifun-editor .
-```
+由于网络问题，我们需要在本地构建应用，然后使用Docker部署已构建的文件：
+
+1. 首先在本地构建React应用：
+   ```bash
+   npm run build
+   ```
+
+2. 然后构建Docker镜像：
+   ```bash
+   docker build -t multifun-editor .
+   ```
 
 ### 运行容器
 
