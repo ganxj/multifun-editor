@@ -183,6 +183,17 @@ function App() {
   }
 
   function handleLoadFromHistory(historyItem) {
+    // 检查当前编辑器是否包含内容
+    const currentContent = editorRef.current ? editorRef.current.getValue() : code;
+    
+    // 如果当前编辑器有内容，提示用户确认
+    if (currentContent && currentContent.trim()) {
+      const userConfirmed = window.confirm('当前编辑器有内容，加载历史记录将覆盖当前内容，是否继续？');
+      if (!userConfirmed) {
+        return; // 用户取消操作
+      }
+    }
+    
     setCode(historyItem.content);
     // 恢复保存的语言设置，如果不存在则默认为json
     setLanguage(historyItem.language || 'json');
