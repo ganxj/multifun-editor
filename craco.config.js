@@ -5,7 +5,24 @@ module.exports = {
     plugins: [
       new MonacoWebpackPlugin({
         // 指定要包含的语言
-        languages: ['json', 'javascript', 'typescript', 'html', 'css']
+        languages: [
+          'json', 
+          'javascript', 
+          'typescript', 
+          'html', 
+          'css',
+          'java',
+          'python',
+          'go',
+          'c',
+          'cpp',
+          'csharp',
+          'php',
+          'ruby',
+          'sql',
+          'yaml',
+          'xml'
+        ]
       })
     ]
   }

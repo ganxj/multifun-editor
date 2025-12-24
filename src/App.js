@@ -6,6 +6,7 @@ function App() {
   const [code, setCode] = useState('');
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(true);
+  const [language, setLanguage] = useState('json'); // 新增语言状态
   const editorRef = useRef();
   
   // 从localStorage加载历史记录
@@ -14,7 +15,15 @@ function App() {
       const savedHistory = localStorage.getItem('jsonEditorHistory');
       console.log('Loading history from localStorage:', savedHistory);
       if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
+        const parsedHistory = JSON.parse(savedHistory);
+        // 更新历史记录格式以支持语言信息
+        const updatedHistory = parsedHistory.map(item => {
+          if (!item.hasOwnProperty('language')) {
+            item.language = 'json'; // 为旧的历史记录添加默认语言
+          }
+          return item;
+        });
+        setHistory(updatedHistory);
       }
     } catch (error) {
       console.error('Failed to load history from localStorage:', error);
@@ -158,7 +167,8 @@ function App() {
       const newHistoryItem = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
-        content: currentContent
+        content: currentContent,
+        language: language // 保存当前语言设置
       };
       
       setHistory(prevHistory => [newHistoryItem, ...prevHistory]);
@@ -174,8 +184,12 @@ function App() {
 
   function handleLoadFromHistory(historyItem) {
     setCode(historyItem.content);
+    // 恢复保存的语言设置，如果不存在则默认为json
+    setLanguage(historyItem.language || 'json');
     if (editorRef.current) {
       editorRef.current.setValue(historyItem.content);
+      // 更新编辑器的语言模式
+      editorRef.current.getModel().setLanguage(historyItem.language || 'json');
     }
   }
 
@@ -200,13 +214,47 @@ function App() {
     monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
   }
 
+  // 处理语言变更
+  function handleLanguageChange(newLanguage) {
+    setLanguage(newLanguage);
+    if (editorRef.current) {
+      editorRef.current.getModel().setLanguage(newLanguage);
+    }
+  }
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Multifunctional JSON Editor</h1>
-        <button onClick={handleNewPage} className="new-page-button">
-          新页面
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* 语言选择下拉框 */}
+          <select 
+            value={language} 
+            onChange={(e) => handleLanguageChange(e.target.value)}
+            className="language-select"
+          >
+            <option value="json">JSON</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+            <option value="go">Go</option>
+            <option value="c">C</option>
+            <option value="cpp">C++</option>
+            <option value="csharp">C#</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="sql">SQL</option>
+            <option value="yaml">YAML</option>
+            <option value="xml">XML</option>
+            <option value="text">Plain Text</option>
+          </select>
+          <button onClick={handleNewPage} className="new-page-button">
+            新页面
+          </button>
+        </div>
       </header>
       
       {/* 工具栏区域 */}
@@ -237,7 +285,7 @@ function App() {
                 >
                   <div className="history-timestamp">{item.timestamp}</div>
                   <div className="history-content" title={item.content}>
-                    {truncateContent(item.content)}
+                    [{item.language || 'json'}] {truncateContent(item.content)}
                   </div>
                   <div 
                     className="delete-icon"
@@ -257,7 +305,7 @@ function App() {
         <div className="editor-container">
           <Editor
             height="80vh"
-            defaultLanguage="json"
+            language={language}
             value={code}
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
