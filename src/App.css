@@ -19,6 +19,12 @@
 .App-header h1 {
   font-size: 18px; /* 减小标题字体大小 */
   margin: 0; /* 移除默认边距 */
+  margin-left: 10px; /* 为logo留出空间 */
+}
+
+.logo {
+  height: 30px;
+  margin-right: 10px;
 }
 
 .new-page-button {

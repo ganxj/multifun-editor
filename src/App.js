@@ -236,7 +236,10 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Multifunctional JSON Editor</h1>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src={`${process.env.PUBLIC_URL}/img/logo.png`} alt="Logo" className="logo" />
+          <h1>Multifunctional JSON Editor</h1>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* 语言选择下拉框 */}
           <select 
