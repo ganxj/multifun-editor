@@ -37,11 +37,36 @@ function App() {
 
   function handleFormatJson() {
     try {
-      // 获取编辑器中的最新值
-      const currentValue = editorRef.current.getValue();
-      const formattedJson = JSON.stringify(JSON.parse(currentValue), null, 2);
-      // 更新编辑器中的内容
-      editorRef.current.setValue(formattedJson);
+      // 获取编辑器实例
+      const editor = editorRef.current;
+      if (!editor) return;
+      
+      // 获取选中的文本
+      const selection = editor.getSelection();
+      let selectedText = editor.getModel().getValueInRange(selection);
+      
+      // 如果没有选中文本，则对整个编辑器内容进行格式化
+      if (!selectedText || selectedText.trim() === '') {
+        const currentValue = editor.getValue();
+        const formattedJson = JSON.stringify(JSON.parse(currentValue), null, 2);
+        editor.setValue(formattedJson);
+        return;
+      }
+      
+      // 对选中的文本进行格式化
+      const formattedJson = JSON.stringify(JSON.parse(selectedText), null, 2);
+      
+      // 替换选中的文本为格式化后的内容
+      editor.executeEdits('', [{
+        range: selection,
+        text: formattedJson
+      }]);
+      
+      // 移动光标到格式化后的内容末尾
+      const endLineNumber = selection.endLineNumber;
+      const endColumn = formattedJson.split('\n').pop().length + 1;
+      editor.setPosition({ lineNumber: endLineNumber, column: endColumn });
+      editor.focus();
     } catch (error) {
       alert('Invalid JSON format: ' + error.message);
     }
@@ -49,11 +74,37 @@ function App() {
 
   function handleCompressJson() {
     try {
-      // 获取编辑器中的最新值
-      const currentValue = editorRef.current.getValue();
-      const compressedJson = JSON.stringify(JSON.parse(currentValue));
-      // 更新编辑器中的内容
-      editorRef.current.setValue(compressedJson);
+      // 获取编辑器实例
+      const editor = editorRef.current;
+      if (!editor) return;
+      
+      // 获取选中的文本
+      const selection = editor.getSelection();
+      let selectedText = editor.getModel().getValueInRange(selection);
+      
+      // 如果没有选中文本，则对整个编辑器内容进行压缩
+      if (!selectedText || selectedText.trim() === '') {
+        const currentValue = editor.getValue();
+        const compressedJson = JSON.stringify(JSON.parse(currentValue));
+        editor.setValue(compressedJson);
+        return;
+      }
+      
+      // 对选中的文本进行压缩
+      const compressedJson = JSON.stringify(JSON.parse(selectedText));
+      
+      // 替换选中的文本为压缩后的内容
+      editor.executeEdits('', [{
+        range: selection,
+        text: compressedJson
+      }]);
+      
+      // 移动光标到压缩后的内容末尾
+      editor.setPosition({ 
+        lineNumber: selection.endLineNumber, 
+        column: selection.startColumn + compressedJson.length 
+      });
+      editor.focus();
     } catch (error) {
       alert('Invalid JSON format: ' + error.message);
     }
@@ -61,13 +112,39 @@ function App() {
 
   function handleRemoveEscape() {
     try {
-      // 获取编辑器中的当前值
-      const currentValue = editorRef.current.getValue();
-      // 只移除第一层转义字符（将双反斜杠变为单反斜杠）
-      // 例如：\\\" 变成 \"
-      const removedEscape = currentValue.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-      // 更新编辑器中的内容
-      editorRef.current.setValue(removedEscape);
+      // 获取编辑器实例
+      const editor = editorRef.current;
+      if (!editor) return;
+      
+      // 获取选中的文本
+      const selection = editor.getSelection();
+      let selectedText = editor.getModel().getValueInRange(selection);
+      
+      // 如果没有选中文本，则对整个编辑器内容进行处理
+      if (!selectedText || selectedText.trim() === '') {
+        const currentValue = editor.getValue();
+        // 只移除第一层转义字符（将双反斜杠变为单反斜杠）
+        // 例如：\\\" 变成 \"
+        const removedEscape = currentValue.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+        editor.setValue(removedEscape);
+        return;
+      }
+      
+      // 对选中的文本进行转义字符处理
+      const removedEscape = selectedText.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      
+      // 替换选中的文本为处理后的内容
+      editor.executeEdits('', [{
+        range: selection,
+        text: removedEscape
+      }]);
+      
+      // 移动光标到处理后的内容末尾
+      editor.setPosition({ 
+        lineNumber: selection.endLineNumber, 
+        column: selection.startColumn + removedEscape.length 
+      });
+      editor.focus();
     } catch (error) {
       alert('Error removing escape character: ' + error.message);
     }
