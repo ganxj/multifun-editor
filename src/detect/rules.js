@@ -110,6 +110,37 @@ function ruleDockerfile(text) {
   return hit('dockerfile', 'Dockerfile', '以 FROM 开头且含 RUN/COPY 等构建指令');
 }
 
+/**
+ * 日志：行首时间戳是最强特征。这类内容是本项目最主要的三个场景之一（JSON / 日志 / 配置），
+ * 但 Monaco 没有日志语言，所以 language 返回 null —— 界面会如实提示「识别为 Log，
+ * 编辑器暂不支持该语言的高亮」并保持当前语言不动。日志本来也不需要语法高亮，保持不动是对的。
+ *
+ * 为什么必须有这条规则：以前日志文本没有任何规则认领，会一路落到 ML 模型手里，
+ * 而模型对「每行以时间戳开头」这种文本会猜成 INI（实测）：粘贴一段日志进去，
+ * 高亮会莫名其妙切成 INI 的 key=value 配色。规则层认领它，就堵住了这个主动出错。
+ */
+function ruleLog(text) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return null;
+
+  // 允许时间戳被 []/()/<> 包裹：`[2026-09-17 14:32:01]` 与 `2026-09-17T14:32:01Z` 都常见
+  const timestamp = /^[[(<]?\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/;
+  const stamped = lines.filter((line) => timestamp.test(line));
+  if (stamped.length < 2) return null;
+  if (stamped.length / lines.length < 0.6) return null;
+
+  // 时间戳 + 日志级别是双重特征：只看时间戳的话，
+  // 「以日期开头的表格/清单」也会被吞进来。
+  // 级别不区分大小写：logback 那类小写 pattern（`… info …`）也常见。
+  const levelish = /\b(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL|CRITICAL)\b/i;
+  if (!stamped.some((line) => levelish.test(line))) return null;
+
+  return hit(null, 'Log', '每行以时间戳开头且含日志级别');
+}
+
 // INI / TOML：二者的语法接近，靠「值是否带类型写法」区分
 function ruleIniOrToml(text) {
   const trimmed = text.trim();
@@ -237,6 +268,10 @@ export const RULES = [
   { name: 'XML', run: ruleXml },
   { name: 'CSV/TSV', run: ruleTableData },
   { name: 'Dockerfile', run: ruleDockerfile },
+  // 日志必须排在 INI/TOML 之前：日志行里常有 `available=1` 这类 key=value，
+  // 落在后面就可能被 INI 规则抢答（现在 INI 要求 60% 的行都是赋值，暂时抢不走，
+  // 但顺序上先认领更稳，别让两条规则去赌同一个特征）
+  { name: 'Log', run: ruleLog },
   { name: 'INI/TOML', run: ruleIniOrToml },
   { name: 'YAML', run: ruleYaml },
   { name: 'SQL', run: ruleSql },

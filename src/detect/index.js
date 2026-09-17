@@ -37,11 +37,12 @@ export async function detectLanguage(text) {
   return refineDetection(byModel, text);
 }
 
-/** 把识别结果整理成一句界面文案 */
-export function describeDetection(result) {
-  if (!result) return '';
-  if (!result.language) {
-    return `识别为 ${result.label}，编辑器暂不支持该语言的高亮`;
-  }
-  return `已识别为 ${result.label}`;
-}
+// 这里原本有个 describeDetection()，负责把识别结果拼成一句成品中文文案。
+// 已删除，原因是它把「界面措辞」放进了检测层：界面改成中英可切换后，
+// 这种在业务代码里拼好的句子翻不了（中英语序不同），查字典也救不回来。
+//
+// 现在的分工：
+//   检测层  → 只回传结构化结果（language / label / confidence / source / reason）
+//   i18n 层 → 用「模板 + 参数」组装文案，见 src/i18n 的 detectSwitched 等条目
+//
+// 也就是说：**不要在这里再加任何面向用户的句子**，哪怕是临时的。

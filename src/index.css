@@ -1,13 +1,13 @@
+/* 字体栈的唯一来源是 App.css 里的 --font-ui / --font-mono。
+   CSS 变量在使用时才求值，所以这里不必关心两个样式表的加载顺序。
+   不要在别处再写第二份字体清单 —— 早先字体栈就是这样散成了两份。 */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: var(--font-mono);
 }

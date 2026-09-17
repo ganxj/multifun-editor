@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>peek · 新设计稿实施方案（定稿）</title>
+<style>
+  :root{
+    --brand:#3B6FE0; --brand-dark:#24509F; --brand-bg:#EAF0FE; --brand-line:#C7D8FA;
+    --ink:#18181B; --ink2:#52525B; --ink3:#A1A1AA;
+    --bg:#FAFAFA; --card:#ffffff; --line:#E4E4E7;
+    --red:#c62828; --red-bg:#fdecea; --amber:#8d6e00; --amber-bg:#fff8e1;
+    --green:#2e7d32; --green-bg:#e8f5e9; --gray-bg:#f4f6f8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0 0 60px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.65; color:var(--ink); background:var(--bg);
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  header.top{
+    background:#141B2E; color:#fff; padding:24px 0; margin-bottom:26px;
+    border-bottom:3px solid var(--brand);
+  }
+  header.top .wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  header.top h1{margin:0; font-size:21px; font-weight:600; letter-spacing:.2px;}
+  header.top .meta{margin-left:auto; font-size:12px; opacity:.88; text-align:right; line-height:1.5;}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:11px; font-size:11px;
+    background:rgba(59,111,224,.38); border:1px solid rgba(147,186,255,.6); margin-left:6px;
+  }
+  h2{
+    font-size:17px; font-weight:600; color:var(--ink); margin:40px 0 14px;
+    padding-left:11px; border-left:4px solid var(--brand);
+  }
+  h3{font-size:15px; font-weight:600; margin:26px 0 10px; color:var(--ink);}
+  h4{font-size:13.5px; font-weight:600; margin:18px 0 8px; color:var(--ink2);}
+  p{margin:9px 0;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; margin:14px 0;
+  }
+  table{width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; background:#fff;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--brand-bg); color:var(--brand-dark); font-weight:600; white-space:nowrap;}
+  td code, p code, li code{
+    background:var(--gray-bg); padding:1px 5px; border-radius:3px;
+    font-family:Consolas,"Courier New",monospace; font-size:12px; color:#b1004a;
+  }
+  ul,ol{margin:8px 0; padding-left:22px;}
+  li{margin:4px 0;}
+  .tag{
+    display:inline-block; padding:1px 7px; border-radius:3px; font-size:11.5px;
+    font-weight:600; white-space:nowrap;
+  }
+  .t-new{background:var(--red-bg); color:var(--red);}
+  .t-chg{background:var(--amber-bg); color:var(--amber);}
+  .t-keep{background:var(--green-bg); color:var(--green);}
+  .t-info{background:var(--brand-bg); color:var(--brand-dark);}
+  .t-gray{background:var(--gray-bg); color:var(--ink2);}
+  .t-cut{background:#eceff1; color:#78909c; text-decoration:line-through;}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:16px 0;}
+  .kpi{background:#fff; border:1px solid var(--line); border-radius:8px; padding:13px 15px;}
+  .kpi .n{font-size:22px; font-weight:600; color:var(--brand-dark); line-height:1.2;}
+  .kpi .l{font-size:12px; color:var(--ink2); margin-top:3px;}
+  .callout{
+    border-left:4px solid var(--brand); background:#fff; padding:12px 16px;
+    border-radius:0 6px 6px 0; margin:14px 0;
+  }
+  .callout.warn{border-left-color:#e6a700; background:#fffdf5;}
+  .callout.danger{border-left-color:var(--red); background:#fffafa;}
+  .callout.ok{border-left-color:#2e9e63; background:#f7fdf9;}
+  .callout strong{color:var(--brand-dark);}
+  .callout.warn strong{color:var(--amber);}
+  .callout.danger strong{color:var(--red);}
+  .callout.ok strong{color:#227a4c;}
+  .disclaimer{
+    font-size:12px; color:var(--ink3); border-top:1px dashed var(--line);
+    margin-top:34px; padding-top:14px;
+  }
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:760px){ .two{grid-template-columns:1fr;} header.top .meta{margin-left:0; text-align:left;} }
+  .swatch{display:inline-block; width:13px; height:13px; border-radius:3px; vertical-align:-2px; border:1px solid rgba(0,0,0,.16); margin-right:5px;}
+  code.q{background:#fff7ed; color:#9a3412;}
+
+  /* ── 屏幕示意（线框级，不是高保真稿）──── */
+  .screen{border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0; background:#fff; font-size:11.5px; color:#334155;}
+  .screen .cap{background:var(--brand-bg); color:var(--brand-dark); font-weight:600; padding:6px 12px; font-size:12px; border-bottom:1px solid var(--brand-line);}
+  .screen .hdr{display:flex; align-items:center; gap:8px; padding:9px 12px; border-bottom:1px solid #eef0f3;}
+  .screen .brandsq{width:15px; height:15px; border-radius:4px; background:var(--brand); flex:none;}
+  .screen .brandtx{font-weight:700; color:#111; font-size:12.5px;}
+  .screen .tags{color:#9aa3af; margin-left:6px; padding-left:9px; border-left:1px solid #e2e6ea;}
+  .screen .spacer{margin-left:auto;}
+  .screen .pill{border:1px solid #dbe1e8; border-radius:999px; padding:2px 9px; color:#4b5563;}
+  .screen .pill.on{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600;}
+  .screen .btn{border-radius:5px; padding:3px 10px; border:1px solid #dbe1e8; color:#374151; white-space:nowrap;}
+  .screen .btn.pri{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600;}
+  .screen .bar{display:flex; align-items:center; gap:10px; padding:6px 12px; border-bottom:1px solid #eef0f3; background:#fbfcfe; flex-wrap:wrap;}
+  .screen .body{display:flex; min-height:96px;}
+  .screen .side{width:31%; border-right:1px solid #eef0f3; padding:8px 10px; background:#fff;}
+  .screen .side .h{display:flex; align-items:center; gap:7px; font-weight:600; color:#111; margin-bottom:7px;}
+  .screen .card2{border:1px solid #e8ebef; border-radius:6px; padding:6px 8px; margin-bottom:6px;}
+  .screen .lg{display:inline-block; background:var(--brand-bg); color:var(--brand-dark); border-radius:3px; padding:0 5px; font-size:10px; font-weight:600; font-family:Consolas,monospace;}
+  .screen .mono{font-family:Consolas,"Courier New",monospace; color:#64748b;}
+  .screen .edit{flex:1; padding:8px 12px; font-family:Consolas,"Courier New",monospace; color:#7a8699; line-height:1.75;}
+  .screen .sbar{display:flex; align-items:center; gap:14px; padding:5px 12px; border-top:1px solid #eef0f3; background:#fbfcfe; color:#64748b; font-size:11px;}
+  .screen .dot{width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:4px; vertical-align:1px;}
+  .screen .dot.g{background:#22A06B;} .screen .dot.r{background:#DC2626;} .screen .dot.y{background:#D97706;}
+  .screen .center{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:26px 16px; text-align:center; color:#94a3b8;}
+  .screen .kb{font-family:Consolas,monospace; border:1px solid #d8dee6; border-bottom-width:2px; border-radius:4px; padding:1px 6px; background:#f8fafc; color:#475569;}
+  .screen .sample{border:1px dashed #d8dee6; border-radius:999px; padding:2px 10px; color:#64748b;}
+  .screen .inline-err{background:var(--red-bg); border:1px solid #f0c2bc; color:#a02b20; border-radius:5px; padding:5px 9px; margin:6px 12px;}
+  .screen .note{background:#fffdf5; border:1px solid #f0dda6; color:#8d6e00; border-radius:5px; padding:5px 9px; margin:6px 12px;}
+  .legend{font-size:12px; color:var(--ink3); margin:6px 0 0;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>peek · 新设计稿实施方案</h1>
+      <div style="font-size:12.5px;opacity:.9;margin-top:4px;">
+        依据：Figma 设计稿主界面（node-id 5-5）＋ 你对我 10 个提问的答复 ｜ 对照基线：当前已部署版本（容器 <code style="background:rgba(255,255,255,.14);color:#dbeafe">peek</code>，localhost:38880）
+      </div>
+    </div>
+    <div class="meta">
+      文档日期 2026-09-17<br />
+      状态：<strong>定稿待确认，仍未改代码</strong>
+      <span class="badge">v2 UI · 定稿</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="callout ok">
+  <strong>一句话结论：范围缩小了，但有两件事必须补上。</strong>
+  你的 10 个答复里有 2 条是「不要」（缩进设置、齿轮设置面板），直接砍掉了约 <strong>2.5 人日</strong>的工作量和 <strong>1 个技术争议</strong>（Go 的 Tab 强制问题随之消失）。
+  但另外 2 条把工作推给了我：<strong>右下角那一格成了唯一的语言入口</strong>（要新做一个底部状态栏，并把被删掉的识别反馈迁进去），<strong>其余屏要我自己补</strong>（我补了 4 屏）。
+  另外「双语按切换」这条把<strong>整个界面文案</strong>变成立项——约 <strong>40 条</strong>字符串，比上一版估的 25 条多，因为补屏和状态栏又新增了一批。
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">13</div><div class="l">人日（6 批 + 1 批验证）</div></div>
+  <div class="kpi"><div class="n">10/10</div><div class="l">提问已闭环</div></div>
+  <div class="kpi"><div class="n">12</div><div class="l">个设计令牌（CSS 变量）</div></div>
+  <div class="kpi"><div class="n">4</div><div class="l">屏由我补（待你过目）</div></div>
+  <div class="kpi"><div class="n">0</div><div class="l">新增第三方依赖</div></div>
+</div>
+
+<h2>一、10 个问题的定稿台账</h2>
+
+<p>先把你的答复翻译成代码层面明确的决策，后面所有章节都以这张表为准。<strong>右列是我据此推断出的连带影响——这部分你没说，是我推的，请重点看这一列。</strong></p>
+
+<table>
+  <tr>
+    <th style="width:38px">#</th>
+    <th style="width:150px">你的答复</th>
+    <th style="width:190px">定稿决策</th>
+    <th>连带影响（我推断的部分）</th>
+  </tr>
+  <tr>
+    <td>Q1</td>
+    <td>手动选语言入口在右下角，现写作「JSON (Bilingual)」</td>
+    <td><span class="tag t-new">新增</span> 底部状态栏那一格 = <strong>当前语言</strong>，点击打开语言选择器。<br />顶栏那个下拉框<strong>删除</strong>。</td>
+    <td>① 手动选语言会<strong>暂停自动识别</strong>（现有逻辑 <code>handleLanguageChange</code>），但这个「已暂停」原本靠工具栏提示条告知——提示条被设计稿删了，所以<strong>暂停状态必须在新界面重新可见</strong>（我建议挂在「自动检测」开关上）。<br />② 语言选择器不能简单地用原生 <code>&lt;select&gt;</code> 塞进 24px 高的状态栏，需要做成一格可点的弹出面板（40 个语言要分组）。</td>
+  </tr>
+  <tr>
+    <td>Q2</td>
+    <td>双语按语言切换，不要同时展示</td>
+    <td><span class="tag t-chg">变更</span> 顶栏 EN/中文 为<strong>互斥切换器</strong>（非并显）。所有控件文字在任一时刻<strong>只有一种语言</strong>。</td>
+    <td>① 工作量从「加个开关」变成「全量文案外置」：<strong>约 40 条</strong>字符串。<br />② 最麻烦的不是文案，是<strong>识别子系统的提示是动态拼接的</strong>（见第七节），必须先改造成「模板 + 参数」才可翻译。<br />③ 默认中文（设计稿里「中文」是高亮态）。</td>
+  </tr>
+  <tr>
+    <td>Q3</td>
+    <td>Bilingual 指的是目前代码的语言</td>
+    <td><span class="tag t-chg">变更</span> 状态栏那一格显示<strong>当前内容的语言</strong>（如 <code>JSON</code>、<code>Markdown</code>）。后辍 <code>(Bilingual)</code> 是误写，去掉。</td>
+    <td>该格因此天然成为 Q1 的手动语言入口——<strong>Q1 与 Q3 是同一个控件</strong>，一个显示、一个交互，合并实现，不做两个位置。</td>
+  </tr>
+  <tr>
+    <td>Q4</td>
+    <td><strong>缩进设置不做了</strong></td>
+    <td><span class="tag t-cut">砍掉</span> 工具栏的「2 Spaces / 2格缩进」下拉<strong>不实现</strong>；不改任何格式化器的缩进行为。</td>
+    <td>连带消失：Go（gofmt）强制 Tab 无法被下拉控制的技术争议、各语言缩进物理不等价的解释成本、<code>IndentWidth</code> 传参改造。<strong>这是本次最大的一笔范围缩减。</strong></td>
+  </tr>
+  <tr>
+    <td>Q5</td>
+    <td><strong>齿轮去掉，不要设置面板</strong></td>
+    <td><span class="tag t-cut">砍掉</span> 顶栏齿轮按钮与设置面板<strong>不实现</strong>。全部配置项分散到界面内：</td>
+    <td>配置项改由「就近」承担：<em>自动识别</em> → 工具栏右侧开关；<em>语言</em> → 底部状态栏；<em>界面语言</em> → 顶栏切换器。<br /><strong>代价</strong>：没有统一的地方承载「记住我的偏好」，像「自动识别是否默认开启」这类项暂时不做持久化（刷新后回到默认）。如果你要，我可以在状态栏做个轻量的记忆，但那又变相成了设置——所以先不做。</td>
+  </tr>
+  <tr>
+    <td>Q6</td>
+    <td>没看到什么 minimap</td>
+    <td><span class="tag t-chg">变更</span> 按图处理：<strong>关闭 minimap</strong>（<code>App.js:475</code> 现为 <code>minimap:{enabled:true}</code>）。</td>
+    <td>minimap 是编辑器最右侧那一条「代码缩略图」。设计稿里编辑区右侧是干净的，所以关掉。改动只有 1 行，如果你后面想要，一句话就能加回来。<br /><em>（说明：这一条我按「设计稿没有」执行，而不是按「你没找到」，因为它没有别的影响。）</em></td>
+  </tr>
+  <tr>
+    <td>Q7</td>
+    <td>只有这一屏，其余我自己补</td>
+    <td><span class="tag t-new">新增</span> 我补 <strong>4 屏</strong>：空状态、错误态、历史为空 + 清空确认、长内容。见第六节。</td>
+    <td>4 屏里<strong>空状态</strong>最重要——它就是新用户看到的第一屏，现在完全空白、不承担任何引导。另外 3 屏是把当前用 <code>alert()</code> 打断的流程改成内联提示（现在共 3 处 <code>alert</code> + 1 处 <code>confirm</code>）。</td>
+  </tr>
+  <tr>
+    <td>Q8</td>
+    <td>tagline 不变</td>
+    <td><span class="tag t-keep">保留</span> 文案仍是「贴进来，一次看清」。</td>
+    <td><strong>但要挪位置</strong>：设计稿里它从 <code>&lt;h1&gt;</code> 内部挪到了页头副标题位（与品牌名之间有竖线分隔）。所以是「文案不变、结构变」，要动 <code>App.js:334-337</code> 与 <code>App.css</code> 的 <code>.app-tagline</code>。</td>
+  </tr>
+  <tr>
+    <td>Q9</td>
+    <td>换一个长得差不多的字体就行，不要求</td>
+    <td><span class="tag t-chg">变更</span> 不引入 Geist。定稿用<strong>系统字体栈</strong>，零字节成本。见第五节。</td>
+    <td>连带的硬约束仍在：字体<strong>必须本地</strong>（引 CDN 会毁掉「内网可用」），且 <strong>Monaco 不吃 CSS 的 <code>font-family</code></strong>，必须单独调 <code>editor.updateOptions({fontFamily})</code>——这条和选哪个字体无关，是必须做的。</td>
+  </tr>
+  <tr>
+    <td>Q10</td>
+    <td>先用 UI 图这个</td>
+    <td><span class="tag t-keep">保留</span> 配色/布局以设计稿为准，不做额外设计探索。</td>
+    <td>我把设计稿里的颜色抽成 <strong>12 个 CSS 变量</strong>（第四节）。<strong>色值仍是我从截图上目测的，已标「需核对」</strong>，落地前建议你在 Figma 里点几个元素把右侧面板的值对一下。</td>
+  </tr>
+</table>
+
+<h2>二、相比上一版，范围变了什么</h2>
+
+<div class="two">
+  <div class="card">
+    <h4 style="margin-top:0;color:var(--green)">砍掉（−2.5 人日）</h4>
+    <ul>
+      <li><strong>缩进设置</strong>（Q4）—— 含 Go/Tab 的争议、<code>IndentWidth</code> 传参、作用范围决策</li>
+      <li><strong>齿轮设置面板</strong>（Q5）—— 含面板 UI、配置项布局、开关状态管理</li>
+      <li>连带：上一版第四节里 3 个「必须先定的前提」有 2 个<strong>直接作废</strong>，只剩字体/双语相关</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4 style="margin-top:0;color:var(--red)">新增（+3.5 人日）</h4>
+    <ul>
+      <li><strong>底部状态栏</strong>（Q1/Q3）—— 全新增区域，且要承载语言选择器</li>
+      <li><strong>4 屏补充设计</strong>（Q7）—— 含空状态的粘贴引导</li>
+      <li><strong>文案全量外置</strong>（Q2）—— 从 25 条涨到约 40 条</li>
+      <li>顺带把 3 处 <code>alert</code> 改成内联错误（补屏的一部分）</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout warn">
+  <strong>有一件事你回答时没被问到，但它现在挡在路上了。</strong>
+  设计稿的顶栏按钮叫「<strong>New Tab 新标签</strong>」——<code>Tab</code> 意味着多文档。但现有实现是单文档（<code>handleNewPage</code> 只做一件事：把当前内容塞进历史、然后把编辑器清空）。
+  而在单文档下，这个按钮的作用其实是「<strong>丢弃当前内容、开始新的</strong>」，可它看起来像「开一个并行标签页」。
+  <strong>叠加一个已存在的缺陷</strong>：现在只有点这个按钮才会保存内容，刷新/误关/断电一律全丢（<code>App.js:234-255</code>）。
+  <br /><br />
+  我的建议：<strong>本轮不做多标签</strong>（多标签和「临时看一眼就走」的形态相冲突），但按钮的语义要诚实、且必须先做自动草稿。
+  具体见第三节「顶栏」与第五节批次 5。
+</div>
+
+<h2>三、逐项变更清单</h2>
+
+<h3>3.1 顶栏（<code>App.js:331-366</code>）</h3>
+
+<table>
+  <tr><th style="width:120px">元素</th><th style="width:32%">现状</th><th style="width:30%">设计稿 / 定稿</th><th>实现落点</th></tr>
+  <tr>
+    <td>底色</td>
+    <td>蓝底白字（<code>#2196F3</code>，<code>App.css:10</code>）</td>
+    <td><span class="tag t-chg">变更</span> 白底深字 + 底部 1px 分隔线</td>
+    <td><code>.App-header</code> 全部重写</td>
+  </tr>
+  <tr>
+    <td>品牌名</td>
+    <td><code>peek</code>（18px 加粗，白字）</td>
+    <td><span class="tag t-keep">保留</span> 品牌名不变，改为深色字</td>
+    <td><code>.App-header h1</code></td>
+  </tr>
+  <tr>
+    <td>tagline</td>
+    <td>塞在 <code>&lt;h1&gt;</code> 里，白字半透明</td>
+    <td><span class="tag t-chg">变更</span> 文案不变（Q8），挪到 h1 外部、加竖线分隔、改灰色</td>
+    <td><code>App.js:334-337</code> 结构调整 + <code>.app-tagline</code></td>
+  </tr>
+  <tr>
+    <td>logo</td>
+    <td>现有 <code>public/img/logo.png</code>，30px 高</td>
+    <td><span class="tag t-info">待确认</span> 截图里呈<strong>紫/蓝紫</strong>色，而主按钮是蓝色</td>
+    <td>若 logo 就沿用现有图片则无需改动；是否换新 logo 见第九节待确认第 1 条</td>
+  </tr>
+  <tr>
+    <td>语言下拉框</td>
+    <td><code>&lt;select&gt;</code>，40 语言分两组（<code>App.js:341-361</code>）</td>
+    <td><span class="tag t-new">搬家</span> <strong>从顶栏移除</strong>，迁到右下角状态栏（Q1）</td>
+    <td>删除顶栏 select，逻辑（<code>handleLanguageChange</code>）复用，仅换挂载点</td>
+  </tr>
+  <tr>
+    <td>EN / 中文</td>
+    <td>无</td>
+    <td><span class="tag t-new">新增</span> 分段式切换器，默认「中文」高亮</td>
+    <td>新增 state + <code>localStorage</code> 持久化</td>
+  </tr>
+  <tr>
+    <td>齿轮</td>
+    <td>无</td>
+    <td><span class="tag t-cut">砍掉</span> 不实现（Q5）</td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>「新页面」按钮</td>
+    <td>白底蓝字，文案「新页面」</td>
+    <td><span class="tag t-chg">变更</span> 主色实心按钮，文案改「新标签 / New Tab」<strong>（语义存疑，见上方警告）</strong></td>
+    <td><code>.new-page-button</code>；文案进 i18n 字典</td>
+  </tr>
+</table>
+
+<h3>3.2 工具栏（<code>App.js:369-431</code>）</h3>
+
+<table>
+  <tr><th style="width:120px">元素</th><th style="width:32%">现状</th><th style="width:30%">设计稿 / 定稿</th><th>实现落点</th></tr>
+  <tr>
+    <td>底色</td>
+    <td><code>#e3f2fd</code> 浅蓝（<code>App.css:83</code>）</td>
+    <td><span class="tag t-chg">变更</span> 白底 + 浅灰分隔</td>
+    <td><code>.toolbar</code></td>
+  </tr>
+  <tr>
+    <td>格式化按钮</td>
+    <td>白底蓝框；文案动态「格式化 中文名」；标题提示用哪个格式化器</td>
+    <td><span class="tag t-chg">变更</span> 主色实心 + 图标；文案「Format JSON / 格式化」<strong>随语言变化</strong></td>
+    <td><code>handleFormat</code> 逻辑不动；仅外观 + 文案。禁用态（<code>canFormat</code>）保留</td>
+  </tr>
+  <tr>
+    <td>去除转义</td>
+    <td>白底蓝框「去除转义」</td>
+    <td><span class="tag t-chg">变更</span> 描边按钮 + 图标，文案「Unescape / 去除转义」</td>
+    <td>逻辑不动。<strong>该函数内有已知缺陷</strong>（<code>handleRemoveEscape</code> 用两次正则近似反转义、不幂等），本轮<strong>不改</strong>，见第九节</td>
+  </tr>
+  <tr>
+    <td>压缩</td>
+    <td>白底蓝框「压缩」，非 JSON 置灰</td>
+    <td><span class="tag t-chg">变更</span> 描边按钮 + 图标；置灰逻辑保留</td>
+    <td><code>canCompress</code> 不动</td>
+  </tr>
+  <tr>
+    <td>格式化器提示</td>
+    <td>工具条内文字「格式化器：Ruff」</td>
+    <td><span class="tag t-new">搬家</span> 设计稿里消失了。<strong>建议挪进状态栏</strong>——这是本项目差异化能力的展示窗口，删掉可惜</td>
+    <td>文案源 <code>getFormatterLabel()</code> 已存在，只是换个地方渲染</td>
+  </tr>
+  <tr>
+    <td>缩进下拉</td>
+    <td>无</td>
+    <td><span class="tag t-cut">砍掉</span> 不实现（Q4）</td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>自动识别开关</td>
+    <td>原生 <code>checkbox</code> + 文字「自动识别语言」</td>
+    <td><span class="tag t-chg">变更</span> 蓝色滑动开关样式「Auto Detect / 自动检测」，靠右</td>
+    <td>需自定义开关组件（纯 CSS）。<strong>并需新增「已暂停」可见态</strong>——手动选语言后自动识别会暂停，但这个状态原本由提示条告知</td>
+  </tr>
+  <tr>
+    <td>识别结果提示条</td>
+    <td><code>.detect-notice</code>，5 种状态色（<code>App.js:413-430</code>）</td>
+    <td><span class="tag t-new">搬家</span> 设计稿里消失了。<strong>建议挪进状态栏</strong>——它是「粘贴自动识别」这个核心卖点的<strong>唯一反馈</strong>，删掉用户无从知道识别有没有工作</td>
+    <td><code>runDetection</code> 里的 5 个分支保留，改渲染位置 + 文案走 i18n</td>
+  </tr>
+</table>
+
+<h3>3.3 左侧历史面板（<code>App.js:434-463</code>）</h3>
+
+<table>
+  <tr><th style="width:120px">元素</th><th style="width:32%">现状</th><th style="width:30%">设计稿 / 定稿</th><th>实现落点</th></tr>
+  <tr>
+    <td>面板底色</td>
+    <td><code>#f0f8ff</code> 淡蓝（<code>App.css:212</code>）</td>
+    <td><span class="tag t-chg">变更</span> 白底；条目改为带边框的卡片</td>
+    <td><code>.history-panel</code> / <code>.history-item</code></td>
+  </tr>
+  <tr>
+    <td>标题栏</td>
+    <td>「历史记录」（蓝字）</td>
+    <td><span class="tag t-chg">变更</span> 「History 历史记录」作为深色胶囊标签 + 右侧「Clear 清空」</td>
+    <td><code>.history-header</code></td>
+  </tr>
+  <tr>
+    <td>清空按钮</td>
+    <td><strong>不存在</strong>（只能逐条删）</td>
+    <td><span class="tag t-new">新增</span> 一键清空 + <strong>二次确认</strong>（不可撤销）</td>
+    <td>新增 <code>handleClearHistory</code>；确认用内联弹层而不是 <code>window.confirm</code>（见第六节第 3 屏）</td>
+  </tr>
+  <tr>
+    <td>语言标识</td>
+    <td>拼在文字里：<code>[json] {内容}</code>（<code>App.js:448</code>）</td>
+    <td><span class="tag t-chg">变更</span> 独立语言徽章（浅蓝底），如 <code>JSON</code> / <code>MARKDOWN</code> / <code>BASH</code></td>
+    <td>拆成两个元素；徽章大写显示</td>
+  </tr>
+  <tr>
+    <td>时间显示</td>
+    <td>绝对时间 <code>new Date().toLocaleString()</code>（<code>App.js:241</code>），如「2026/9/17 14:11:03」</td>
+    <td><span class="tag t-chg">变更</span> 相对时间「2 min ago」「Yesterday」</td>
+    <td><strong>不需要改数据结构</strong>：现有 <code>id: Date.now()</code>（<code>App.js:240</code>）本身就是时间戳，直接拿它算相对时间即可，旧数据也兼容。新增一个 <code>formatRelative()</code> 工具函数</td>
+  </tr>
+  <tr>
+    <td>删除按钮</td>
+    <td>红色 <code>×</code>，常驻</td>
+    <td><span class="tag t-chg">变更</span> 垃圾桶图标，悬停显现</td>
+    <td><code>.delete-icon</code></td>
+  </tr>
+  <tr>
+    <td>面板收起</td>
+    <td><strong>做不到</strong>：<code>showHistory</code> 只有初始值 <code>true</code>，没有 setter（<code>App.js:19</code>）</td>
+    <td><span class="tag t-info">建议</span> 设计稿没画收起态。既然历史占 1/4 宽，「看一眼」场景下大概率想收起</td>
+    <td>补 setter + 顶栏或面板边缘加折叠按钮，<strong>约 0.5 人日</strong>，见第九节待确认第 3 条</td>
+  </tr>
+</table>
+
+<h3>3.4 底部状态栏（<strong>全新增区域</strong>）</h3>
+
+<p>设计稿底部那条细栏目前完全不存在，是本次工作量最集中的新增件。<strong>它同时承担 3 个职责</strong>，其中 2 个是被设计稿删掉的反馈的「收容所」：</p>
+
+<table>
+  <tr><th style="width:130px">分区</th><th style="width:36%">内容</th><th>实现要点</th></tr>
+  <tr>
+    <td>左侧</td>
+    <td><span class="dot g" style="width:7px;height:7px;border-radius:50%;display:inline-block;background:#22A06B"></span> Ready / 就绪<br /><span class="dot r" style="width:7px;height:7px;border-radius:50%;display:inline-block;background:#DC2626"></span> 错误态（见第六节第 2 屏）</td>
+    <td>需要一个「应用状态」概念：空闲 / 识别中 / 格式化中 / 出错。<strong>识别与格式化的进行中状态现在只体现在按钮文字，迁到这里更稳</strong>（工具栏按钮文字不再跳动）</td>
+  </tr>
+  <tr>
+    <td>左中</td>
+    <td><code>Ln 12, Col 21</code></td>
+    <td>监听 Monaco <code>onDidChangeCursorPosition</code>。<strong>现在完全没有</strong>，是新代码</td>
+  </tr>
+  <tr>
+    <td>右中</td>
+    <td><code>Size / 大小: 2.48 KB</code></td>
+    <td>由内容长度实时算（<code>new Blob([text]).size</code>）。顺带承担「长内容提示」的触发器（见第六节第 4 屏）</td>
+  </tr>
+  <tr>
+    <td>右</td>
+    <td><code>JSON</code> ← <strong>可点，打开语言选择器</strong>（Q1+Q3）</td>
+    <td>状态栏高度约 24px，原生 <code>&lt;select&gt;</code> 塞不进去 → 做成一格按钮 + 向上弹出的分组面板（40 语言）。<strong>这是本次交互上最需要仔细做的控件</strong></td>
+  </tr>
+  <tr>
+    <td>最右</td>
+    <td><code>UTF-8</code></td>
+    <td><span class="tag t-info">静态</span> 目前是写死的展示。项目是纯前端字符串处理，<strong>没有真正的编码转换能力</strong>——建议照设计稿显示（如实，因为内容确实是 UTF-8），但不要做成可点</td>
+  </tr>
+  <tr>
+    <td colspan="3" style="background:var(--gray-bg)">
+      <strong>建议额外塞进状态栏的两项（设计稿里被删的）</strong>：
+      ① <code>格式化器：Ruff</code>（差异化能力展示）　② 识别结果反馈（<code>已切换到 Python</code> / <code>未能识别，保持当前选择</code>）
+      —— 状态栏是它们天然的容身处，且不占主视觉。
+    </td>
+  </tr>
+</table>
+
+<h2>四、设计令牌（CSS 变量）</h2>
+
+<div class="callout">
+  <strong>这一步必须最先做，否则后面每一步都在改字面值。</strong>
+  现在 <code>#2196F3</code> 在 <code>App.css</code> 里散落十几次，<code>#e3f2fd</code>、<code>#bbdefb</code>、<code>#f5f5dc</code> 各自也有多处。
+  直接逐条替换成新色，<strong>一定会有漏网的旧蓝</strong>（半透明、hover 态、禁用态最容易漏）。抽成变量后，换肤 = 改这一张表。
+</div>
+
+<table>
+  <tr><th style="width:180px">变量</th><th style="width:110px">目测值<br /><span style="font-weight:400">（需核对）</span></th><th style="width:24%">用途</th><th>替换掉现在的</th></tr>
+  <tr><td><code>--c-brand</code></td><td><span class="swatch" style="background:#3B6FE0"></span><code>#3B6FE0</code></td><td>主色：主按钮、激活态、语言徽章字</td><td><code>#2196F3</code>（12 处左右）</td></tr>
+  <tr><td><code>--c-brand-hover</code></td><td><span class="swatch" style="background:#2F5FCB"></span><code>#2F5FCB</code></td><td>主按钮悬停</td><td>—</td></tr>
+  <tr><td><code>--c-brand-weak</code></td><td><span class="swatch" style="background:#EAF0FE"></span><code>#EAF0FE</code></td><td>浅蓝底：语言徽章、表头、激活背景</td><td><code>#e3f2fd</code> / <code>#f0f8ff</code></td></tr>
+  <tr><td><code>--c-brand-line</code></td><td><span class="swatch" style="background:#C7D8FA"></span><code>#C7D8FA</code></td><td>浅蓝描边</td><td><code>#bbdefb</code></td></tr>
+  <tr><td><code>--c-ink</code></td><td><span class="swatch" style="background:#111827"></span><code>#111827</code></td><td>主文字 / 品牌名</td><td>白字（页头）/ <code>#333</code></td></tr>
+  <tr><td><code>--c-ink-2</code></td><td><span class="swatch" style="background:#4B5563"></span><code>#4B5563</code></td><td>次级文字：按钮文案、开关标签</td><td><code>#5b6b7a</code></td></tr>
+  <tr><td><code>--c-ink-3</code></td><td><span class="swatch" style="background:#9CA3AF"></span><code>#9CA3AF</code></td><td>三级文字：tagline、行号、相对时间</td><td><code>#666</code></td></tr>
+  <tr><td><code>--c-line</code></td><td><span class="swatch" style="background:#E5E7EB"></span><code>#E5E7EB</code></td><td>分隔线、卡片边框</td><td><code>#e0e0e0</code> / <code>#bbdefb</code></td></tr>
+  <tr><td><code>--c-bg</code></td><td><span class="swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td>页面 / 面板底</td><td><code>#f5f5dc</code>（米白，要换掉）</td></tr>
+  <tr><td><code>--c-bg-soft</code></td><td><span class="swatch" style="background:#FBFCFE"></span><code>#FBFCFE</code></td><td>工具栏 / 状态栏底</td><td><code>#e3f2fd</code></td></tr>
+  <tr><td><code>--c-ok</code></td><td><span class="swatch" style="background:#22A06B"></span><code>#22A06B</code></td><td>Ready 圆点、成功提示</td><td>—</td></tr>
+  <tr><td><code>--c-danger</code></td><td><span class="swatch" style="background:#DC2626"></span><code>#DC2626</code></td><td>错误圆点、删除图标、报错框</td><td><code>#ff6b6b</code></td></tr>
+</table>
+
+<p class="legend">另需 <code>--c-warn</code>（<code>#D97706</code>）用于「识别不确定」与「长内容提示」，共 13 个变量。全部色值为截图目测，落地前请核对。</p>
+
+<div class="callout warn">
+  <strong>换掉 <code>#f5f5dc</code> 米白底要留意。</strong>
+  它是当前页面的辨识特征之一，但设计稿是纯白底 + 细边框的「卡片化」风格。纯白底会让编辑器与面板的边界消失，
+  <strong>必须靠 <code>--c-line</code> 边框补上层次</strong>，否则界面会「糊成一片白」。这是照图换肤最常见的翻车点。
+</div>
+
+<h2>五、字体定稿</h2>
+
+<p>你的答复是「换一个长得差不多的就行，不要求」——那就不引入任何字体文件，用系统栈，零字节成本、零许可风险、不破坏离线。</p>
+
+<div class="card">
+<h4 style="margin-top:0">定稿：系统字体栈</h4>
+<pre style="background:var(--gray-bg);padding:11px 13px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0"><code>--font-ui: "Segoe UI Variable Text", "Segoe UI", -apple-system,
+           "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC",
+           system-ui, sans-serif;
+--font-mono: "Cascadia Mono", "Consolas", "SF Mono", Menlo, monospace;</code></pre>
+<p style="margin-bottom:0">Windows 上英文落到 <strong>Segoe UI</strong>、中文落到 <strong>微软雅黑</strong>。Geist 是几何无衬线，Segoe UI 是人文无衬线——<strong>风格不完全一致，但在 12–14px 的界面字号下差异很小</strong>，且好处是「中英文都是本机原生的，看起来不违和」。</p>
+</div>
+
+<div class="callout warn">
+  <strong>必须知道的一件事：换来换去都躲不开「中英分属两套字体」。</strong>
+  不管是 Geist、Inter 还是 Segoe UI，都没有中文字形——中文一律回落系统字体。这是<strong>字体选型层面无解的</strong>，
+  唯一解法是打包一套「拉丁 + 中文同源」的字族（思源黑体 / MiSans / HarmonyOS Sans SC），代价是 <strong>+0.6～2MB</strong>，
+  且主 bundle 已经 4.5MB。所以你这条「不要求」的答复，我认为是这次最省的一个决定。
+  <br /><br />
+  <strong>升级路径留好了</strong>：若将来觉得英文不够像设计稿，换 MiSans 或 HarmonyOS Sans SC，改动量 = <strong>改 <code>--font-ui</code> 一个变量 + 加一个 woff2</strong>，不用重构。
+</div>
+
+<p><strong>两处必须单独处理，和选哪个字体无关：</strong></p>
+<ul>
+  <li><strong>Monaco 不吃 CSS 的 <code>font-family</code></strong>。编辑器内部用自己的字体设置，必须显式调 <code>editor.updateOptions({ fontFamily: '...', fontSize: 13 })</code>，否则编辑器里还是默认字体，与外面不一致。</li>
+  <li><strong>字体不能引 CDN</strong>。本项目卖点之一是内网可用，即便将来换了字体也必须本地打包（<code>public/fonts/</code>）。</li>
+</ul>
+
+<h2>六、我补的 4 屏</h2>
+
+<p>你说只有这一屏、其余我补。我按「临时贴进来看一眼」这个核心场景补了 4 屏，<strong>都是线框级示意，不是高保真稿</strong>——它们的作用是确认「这一屏要不要做、要解决什么」，不是给你照着切图。</p>
+
+<h3>第 1 屏 · 空状态（最该做的）</h3>
+
+<p>这是新用户看到的第一屏，现在<strong>完全空白、不承担任何引导职责</strong>。用户不知道要粘贴、不知道格式化的快捷键，只能自己摸索。</p>
+
+<div class="screen">
+  <div class="cap">屏 1 ｜ 空状态：编辑器无内容时</div>
+  <div class="hdr">
+    <span class="brandsq"></span><span class="brandtx">peek</span>
+    <span class="tags">贴进来，一次看清</span>
+    <span class="spacer"></span>
+    <span class="pill">EN</span><span class="pill on">中文</span>
+    <span class="btn pri">+ 新标签</span>
+  </div>
+  <div class="bar">
+    <span class="btn pri">⤓ 格式化</span><span class="btn">Unescape 去除转义</span><span class="btn">Compress 压缩</span>
+    <span class="spacer"></span><span style="color:#4b5563">Auto Detect 自动检测 <span class="pill on" style="padding:0 7px">●</span></span>
+  </div>
+  <div class="body">
+    <div class="side">
+      <div class="h">History 历史记录</div>
+      <div style="color:#b0b8c1;font-size:11px">还没有记录</div>
+    </div>
+    <div class="center">
+      <div style="font-size:15px;color:#475569;font-weight:600">把内容粘进来就行</div>
+      <div><span class="kb">Ctrl</span> + <span class="kb">V</span> &nbsp;语言会自动认出来</div>
+      <div style="margin-top:4px;color:#b0b8c1">或直接拖一个文件到这里</div>
+      <div style="margin-top:6px">
+        <span class="sample">试试 JSON 示例</span>
+        <span class="sample">试试日志示例</span>
+        <span class="sample">试试配置示例</span>
+      </div>
+    </div>
+  </div>
+  <div class="sbar"><span class="dot g"></span>Ready / 就绪<span class="spacer"></span>UTF-8 &nbsp;·&nbsp; JSON</div>
+</div>
+
+<table>
+  <tr><th style="width:150px">设计要点</th><th>为什么</th></tr>
+  <tr><td>主句是「把内容粘进来就行」</td><td>核心动词是「看」，入口动作是「粘贴」。这句话要在一秒内传达「不用新建文件、不用选语言」</td></tr>
+  <tr><td>快捷键提示</td><td><code>Ctrl+V</code> 是零成本教学，且用户本来就会</td></tr>
+  <tr><td>3 个示例一键载入</td><td><strong>这是本屏最值钱的部分</strong>：把「我该粘什么」变成可点击的动作。示例要覆盖 3 类典型场景（结构化数据 / 日志 / 配置），正好演示「自动识别」这个卖点</td></tr>
+  <tr><td>不写「拖拽文件」为主入口</td><td>按你的产品初衷，粘贴是主入口，文件是补充。所以文案里放次一级</td></tr>
+  <tr><td>历史区同时有空态</td><td>否则左侧一片空白，看起来像加载失败</td></tr>
+</table>
+
+<h3>第 2 屏 · 错误态（顺手解掉 3 处 alert）</h3>
+
+<p>现在有 <strong>3 处 <code>alert()</code></strong>（格式化失败、JSON 无效、转义处理失败）+ <strong>1 处 <code>window.confirm()</code></strong>（加载历史覆盖确认）。<code>alert</code> 会打断整个页面、内容不可复制、还带浏览器前缀，和「看一眼」的轻量体感冲突。</p>
+
+<div class="screen">
+  <div class="cap">屏 2 ｜ 错误态：JSON 语法错误 / 压缩失败</div>
+  <div class="hdr">
+    <span class="brandsq"></span><span class="brandtx">peek</span><span class="tags">贴进来，一次看清</span>
+    <span class="spacer"></span><span class="pill on">EN</span><span class="pill">中文</span><span class="btn pri">+ 新标签</span>
+  </div>
+  <div class="bar">
+    <span class="btn pri">⤓ 格式化</span><span class="btn">Unescape 去除转义</span><span class="btn">Compress 压缩</span>
+    <span class="spacer"></span><span style="color:#4b5563">Auto Detect 自动检测 <span class="pill on" style="padding:0 7px">●</span></span>
+  </div>
+  <div class="inline-err">⚠ <strong>第 7 行第 5 列</strong> 缺少逗号 — 无法格式化，已保留原文</div>
+  <div class="body" style="min-height:74px">
+    <div class="side"><div class="h">History 历史记录</div><div class="card2"><span class="lg">JSON</span> <span class="mono" style="font-size:10px">{"user_id": 9901…</span></div><div class="card2"><span class="lg">JSON</span> <span class="mono" style="font-size:10px">{"status": "ok"…</span></div></div>
+    <div class="edit">1&nbsp;&nbsp;{<br />5&nbsp;&nbsp;&nbsp;&nbsp;"meta": {<br />6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"version": "v2.1.0"<br />7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dc2626;text-decoration:underline wavy #dc2626">"locale": "zh_CN"</span><br />8&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+  </div>
+  <div class="sbar"><span class="dot r"></span>错误 / Error<span class="spacer">Ln 7, Col 5 &nbsp;·&nbsp; Size 2.48 KB &nbsp;·&nbsp; JSON &nbsp;·&nbsp; UTF-8</span></div>
+</div>
+
+<table>
+  <tr><th style="width:150px">设计要点</th><th>为什么</th></tr>
+  <tr><td>错误内联在编辑器上方，不弹窗</td><td>不打断阅读；错误消失后布局自然收回</td></tr>
+  <tr><td>带行列号，可定位</td><td>「第 7 行第 5 列」比「Invalid JSON format」有用得多。Monaco 自带波浪线，点击错误条可跳到该位置</td></tr>
+  <tr><td>状态栏同步变红点</td><td>即使错误条被手动关掉，状态栏仍留痕</td></tr>
+  <tr><td>原文必须保住</td><td>现在 <code>alert</code> 之后内容确实没变，这点是对的，<strong>不要改坏</strong></td></tr>
+</table>
+
+<div class="callout warn">
+  <strong>这里有个诚实的边界：真正值得做的是「校验错误定位」，但它的成本比这一屏的样子高得多。</strong>
+  上面这个「第 7 行第 5 列」在 JSON 下由 Monaco 免费提供（<code>JSON.parse</code> 的报错信息里带位置）。
+  但 C/C++/Python 等语言的错误定位要另外接语言服务。<strong>本轮只做 JSON + 格式化的错误内联，不做全语言校验</strong>——后者我建议单独立一项（见第九节）。
+</div>
+
+<h3>第 3 屏 · 历史为空 + 清空确认（新增清空按钮的安全网）</h3>
+
+<div class="screen">
+  <div class="cap">屏 3 ｜ 清空确认（不可撤销操作必须有二次确认）</div>
+  <div class="body" style="min-height:88px">
+    <div class="side" style="width:40%">
+      <div class="h">History 历史记录 <span class="spacer"></span><span style="color:#dc2626">Clear 清空</span></div>
+      <div class="note" style="margin:0 0 6px">清空 <strong>12</strong> 条记录？此操作不可撤销。<br /><span style="color:#8d6e00">其中 3 条是最近 10 分钟的</span><br /><span class="btn" style="padding:1px 8px">取消</span> <span class="btn pri" style="padding:1px 8px;background:#dc2626;border-color:#dc2626">清空</span></div>
+      <div class="card2"><span class="lg">JSON</span> <span class="mono" style="font-size:10px">{"status": "ok"…</span></div>
+      <div class="card2"><span class="lg">BASH</span> <span class="mono" style="font-size:10px">curl -X POST…</span></div>
+    </div>
+    <div class="edit">1&nbsp;&nbsp;{<br />2&nbsp;&nbsp;&nbsp;&nbsp;"transaction_id": "tx_8f9c1d8e3d"</div>
+  </div>
+  <div class="sbar"><span class="dot g"></span>Ready / 就绪<span class="spacer">Size / 大小: 2.48 KB &nbsp;·&nbsp; JSON &nbsp;·&nbsp; UTF-8</span></div>
+</div>
+
+<p><strong>为什么这屏必须做：</strong>「清空」是本项目里<strong>唯一不可撤销的批量操作</strong>。而且它和另一个已存在的信任级缺陷直接相关——历史记录目前<strong>没有任何条数/体积上限</strong>，localStorage 写满后 <code>QuotaExceededError</code> 被 <code>console.error</code> 吞掉，用户只会发现「历史莫名少了一段」。<strong>所以「容量治理」必须和清空按钮一起做</strong>（见批次 5）。</p>
+
+<h3>第 4 屏 · 长内容提示</h3>
+
+<div class="screen">
+  <div class="cap">屏 4 ｜ 大内容：Size 超过阈值时给一行轻提示</div>
+  <div class="bar">
+    <span class="btn pri">⤓ 格式化</span><span class="btn">Unescape 去除转义</span><span class="btn">Compress 压缩</span>
+    <span class="spacer"></span><span style="color:#4b5563">Auto Detect 自动检测 <span class="pill on" style="padding:0 7px">●</span></span>
+  </div>
+  <div class="note">⚠ 内容较大（8.4 MB），识别与格式化可能需要几秒 —— <span style="text-decoration:underline">只在粘贴时识别</span></div>
+  <div class="body" style="min-height:64px">
+    <div class="side" style="width:31%"><div class="h">History 历史记录</div></div>
+    <div class="edit">1&nbsp;&nbsp;[<br />2&nbsp;&nbsp;&nbsp;&nbsp;{"id": 1, "ts": 1765149301, …</div>
+  </div>
+  <div class="sbar"><span class="dot y"></span>就绪<span class="spacer">Size / 大小: 8.4 MB &nbsp;·&nbsp; JSON &nbsp;·&nbsp; UTF-8</span></div>
+</div>
+
+<p><strong>这屏不是性能优化，是预期管理。</strong>真正的性能治理（虚拟化、增量高亮）属于 Later 阶段，本轮不做。这里只做一件事：内容超过阈值（建议 5MB）时，让用户知道「接下来可能要等几秒、为什么」，而不是面对一个卡住的界面乱点。措辞里要说明「只在粘贴时识别」，这是在解释延迟的来源。</p>
+
+<h2>七、双语切换的落地方案（Q2）</h2>
+
+<p>「按语言切换」听起来只是把文字换成另一个语言，但项目里有一处<strong>查字典解决不了</strong>：识别子系统的提示是<strong>运行时动态拼接</strong>的。</p>
+
+<div class="card">
+<h4 style="margin-top:0">现状：拼装出来的中文串</h4>
+<p><code>detect/index.js</code> 的 <code>describeDetection()</code> 会把模型判断结果拼成完整句子，例如：</p>
+<pre style="background:var(--red-bg);padding:11px 13px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0"><code>未发现任何 TypeScript 专有语法，按 JavaScript 处理（模型判为 TypeScript）</code></pre>
+<p style="margin-bottom:0">这句话在中文里要靠语序和括号，直接按词替换成英文会立刻散架。</p>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">定稿：改成「模板 + 参数」，让文案可翻译</h4>
+<pre style="background:var(--green-bg);padding:11px 13px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0"><code>// 检测层只返回结构化结果，不再返回成品句子
+{ code:'detect.refine.jsOverTs', params:{ model:'TypeScript', final:'JavaScript' } }
+
+// i18n 层负责措辞
+zh: '未发现任何 {model} 专有语法，按 {final} 处理'
+en: 'No {model}-specific syntax found — treating as {final}'</code></pre>
+<p style="margin-bottom:0">这是本次<strong>唯一一处需要改检测子系统（<code>src/detect/</code>）内部的地方</strong>。好在改动是「把拼接挪走」而非重写逻辑，且现有自检（识别 24/24）能立刻验证改造没改坏判断结果。</p>
+</div>
+
+<h4>i18n 的落点（要动约 40 条字符串）</h4>
+
+<table>
+  <tr><th style="width:150px">区域</th><th style="width:70px">条数</th><th>示例</th></tr>
+  <tr><td>顶栏</td><td>约 4</td><td><code>新标签 / New Tab</code>、tagline</td></tr>
+  <tr><td>工具栏</td><td>约 8</td><td><code>格式化 / Format</code>、<code>压缩 / Compress</code>、<code>自动检测 / Auto Detect</code>、各按钮 title</td></tr>
+  <tr><td>历史面板</td><td>约 8</td><td><code>历史记录 / History</code>、<code>清空 / Clear</code>、相对时间（<code>分钟前 / min ago</code>）</td></tr>
+  <tr><td>状态栏</td><td>约 6</td><td><code>就绪 / Ready</code>、<code>大小 / Size</code>、<code>行,列 / Ln,Col</code></td></tr>
+  <tr><td>空状态</td><td>约 5</td><td>粘贴引导、3 个示例按钮</td></tr>
+  <tr><td>提示与错误</td><td>约 11</td><td>识别 5 种状态、格式化错错、清空确认、长内容提示</td></tr>
+</table>
+
+<div class="callout">
+  <strong>代码组织：新增 <code>src/i18n/</code> 目录，但界面代码仍留在 <code>App.js</code>。</strong>
+  这是刻意贴合项目现有约定的——<code>format/</code>、<code>detect/</code> 都是「能力子系统独立成目录，UI 集中在 App.js」。
+  为状态栏、空状态单独建 <code>components/</code> 目录会打破这个约定，而且这个体量（约 300 行 UI）还不值得拆文件。
+  <br /><br />
+  <strong>语言选择要持久化</strong>（<code>localStorage</code>），否则每次刷新都回默认值，用户会烦。
+  <strong>但不要和「识别语言」混用同一个 key</strong>——一个是界面语言、一个是内容语言，语义完全不同，混用将来必出 bug。
+</div>
+
+<h2>八、实施批次与工作量</h2>
+
+<table>
+  <tr><th style="width:44px">批</th><th style="width:190px">内容</th><th style="width:70px">人日</th><th>为什么排这个顺序</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>设计令牌 + 外壳换肤 + 字体</strong><br /><span class="tag t-info">基础</span></td>
+    <td>3.0</td>
+    <td>令牌不先立，后面每一批都在改字面值、且必然漏改。本批交付后外观即与设计稿一致，但功能不变——可先让你看效果</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>i18n + 双语切换</strong><br /><span class="tag t-new">新增能力</span></td>
+    <td>2.5</td>
+    <td>排在状态栏之前，是因为状态栏和补屏的文案一出生就该是 i18n key；反过来做就要二次触碰所有文案</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>底部状态栏</strong><br />含语言选择器、Ln/Col、Size、状态灯<br />+ 收容被删的识别反馈与格式化器提示</td>
+    <td>1.5</td>
+    <td>语言入口搬家到这里（Q1），是本轮交互上最需要细做的控件；同时它让被设计稿删掉的两个反馈有地方可去</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td><strong>补 4 屏</strong><br />空状态 + 错误内联 + 清空确认 + 长内容提示<br />（含 3 处 <code>alert</code> → 内联）</td>
+    <td>2.0</td>
+    <td>依赖状态栏（错误态要变色、长内容要看 Size）</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td><strong>历史面板升级 + 不丢数据</strong><br />相对时间、语言徽章、清空、<strong>容量治理</strong>、<strong>自动草稿</strong></td>
+    <td>2.5</td>
+    <td>把「清空」这个危险动作与两个数据安全项绑在一起做——单独做清空等于给用户一把更快的刀</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td><strong>回归与部署验证</strong><br />补自检用例 + 生产产物验证</td>
+    <td>1.5</td>
+    <td>现有自检（格式化 12/12、识别 24/24、粘贴 e2e）覆盖的是<b>旧界面</b>，改完必须补新用例，否则新区域完全无保护</td>
+  </tr>
+  <tr style="background:var(--brand-bg);font-weight:600">
+    <td colspan="2">合计</td><td>13.0</td><td>不含 Later 阶段（Diff、多标签、树视图、真离线 PWA）</td>
+  </tr>
+</table>
+
+<div class="callout warn">
+  <strong>批次 5 里有两项超出了「照图改 UI」的范畴，我明确标出来。</strong>
+  ① <strong>容量治理</strong>：给历史加条数上限（建议 30 条）与单条体积上限，并在超限时<strong>给出可见提示而不是静默丢弃</strong>——这是修一个已存在的信任级缺陷。
+  ② <strong>自动草稿</strong>：当前编辑内容落盘（防刷新/误关丢失），这是另一个已存在缺陷，且是「新标签」按钮能被安全使用的前提。
+  这两项都是<strong>上一轮我列的 P0</strong>。它们和设计稿无关，但既然要改这一块，一起做最省。
+</div>
+
+<h2>九、仍需你确认的 5 件小事</h2>
+
+<p>都是小问题，但不定就会返工。每条我都给了建议，<strong>你觉得没问题就直接说「都按你的来」</strong>。</p>
+
+<table>
+  <tr><th style="width:44px">#</th><th style="width:190px">问题</th><th style="width:38%">我的建议</th><th>如果不这么做会怎样</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>logo 换不换？</strong><br />截图里 logo 偏紫/蓝紫，而主按钮是蓝色</td>
+    <td>沿用现有 <code>logo.png</code>，本轮不动。截图可能只是缩略图偏色</td>
+    <td>如果设计稿真的用了新 logo 而我不改，页头会有点不搭；但这个改起来只要换一个图片文件</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>「新标签」按钮的语义</strong><br />单文档下它其实是「丢弃当前内容、开新的」</td>
+    <td>本轮保持单文档，但① 文案与 title 要讲诚实；② <strong>必须先有自动草稿</strong>，否则误点即全丢</td>
+    <td>叫「新标签」却不给多标签，用户会以为能并行开文档，反复点击后找不到「刚才那个标签去哪了」</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>历史面板要不要可收起？</strong><br />设计稿没画收起态</td>
+    <td><strong>要</strong>（+0.5 人日）。历史占 1/4 宽，而「看一眼」场景下多数时候只想看内容</td>
+    <td>不做的话，看长行的 JSON / 日志时永远少 1/4 屏宽，且用户没有办法</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td><strong>状态栏那一格显示什么？</strong></td>
+    <td>显示当前语言（如 <code>JSON</code>），去掉 <code>(Bilingual)</code>，点击打开选择器（Q1+Q3 合并）</td>
+    <td>若照截图原样写 <code>JSON (Bilingual)</code>，与「按语言切换」的决策直接矛盾，用户会以为界面处于双语模式</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td><strong>空状态那 3 个示例用什么内容？</strong></td>
+    <td>JSON（结构化数据）、日志（多行文本、无语法）、INI/配置（演示「识别成 INI 或 TOML」）——正好各演示一种识别路径</td>
+    <td>如果放 3 个 JSON 示例，等于白占位置，没能演示「自动识别」这个卖点</td>
+  </tr>
+</table>
+
+<h3>另外两件本轮<strong>刻意不做</strong>的（说明理由，避免以后被当成遗漏）</h3>
+<ul>
+  <li><strong><code>handleRemoveEscape</code> 的重写</strong> —— 它的实现（两次正则、不幂等、嵌套转义会错）确实有问题，但重写属于逻辑变更，会稀释本轮「只改界面」的验证边界。建议单独立一项，因为它有现成的自检可挂。</li>
+  <li><strong>全语言语法校验定位</strong> —— 设计稿里没有这个需求，而成本远高于界面改动（要接各语言服务）。本轮只做 JSON + 格式化错误的定位（Monaco 免费提供）。</li>
+</ul>
+
+<h2>十、边界声明</h2>
+
+<div class="disclaimer">
+  <p><strong>本文档的确定性边界，请按此采信：</strong></p>
+  <ul>
+    <li><strong>代码事实（高确定性）</strong>：所有「现状」列的内容均来自实际读取 <code>src/App.js</code>（486 行）、<code>src/App.css</code>（292 行）、<code>src/detect/</code>、<code>src/format/</code>，含具体行号与函数名，可直接核对。</li>
+    <li><strong>你的决策（高确定性）</strong>：第一节台账左三列来自你对 10 个问题的直接答复，未作改写。<strong>但第四列「连带影响」是我推断的</strong>，你没有逐条确认过。</li>
+    <li><strong>色值与尺寸（低确定性·需核对）</strong>：第四节全部色值、第六节各屏的元素尺寸，均为我从 Figma 截图<strong>目测</strong>得出，不是从设计文件读取的精确值。文档中已逐处标注「需核对」。要精确值有两个办法：你在 Figma 里选中元素把右侧面板数值发我，或给我一个只读 token 我直接拉。</li>
+    <li><strong>工作量估算（中低确定性）</strong>：人日数以「熟悉本项目的单人开发」为基准，<strong>未计入</strong>联调、返工与需求变更。竞品功能基线来自公开信息检索，非实测。</li>
+    <li><strong>我补的 4 屏（设计提案，非结论）</strong>：第六节是线框级提案，用于确认「要不要做、解决什么」，不是高保真视觉稿，也没有覆盖 hover / 禁用 / 焦点等全部状态。</li>
+    <li><strong>用户侧证据：无</strong>。本项目<b>零埋点、零访谈、零可用性测试</b>。上述所有优先级判断都是基于代码资产与产品初衷（「临时看一眼」）的<strong>推断级结论</strong>，尚无证据级支持。这也是我在上一份规划里建议补本地埋点的原因。</li>
+  </ul>
+  <p style="margin-top:12px">版本关系：本文依据 <code>docs/ui-redesign-diff.html</code>（v1 对照稿）与你的答复定稿，<strong>结论以本文为准</strong>；上一份 <code>docs/product-roadmap.html</code> 中的界面相关结论同样以本文为准。</p>
+</div>
+
+</div>
+</body>
+</html>

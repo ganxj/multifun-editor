@@ -7,6 +7,23 @@
  * 只判断非空的话，把 Python 认成 JavaScript 也会算通过。
  */
 import { detectLanguage } from './detect';
+import { SAMPLES } from './samples';
+
+const sampleOf = (id) => SAMPLES.find((item) => item.id === id).content;
+
+// 空状态里那三个示例是用户第一眼就会点的东西，它们的行为就是「识别能力」的对外演示。
+// 所以直接拿真实示例内容来断言，而不是另抄一份近似文本：
+// 以后谁改了 samples.js 的内容导致识别结果变了，这里会立刻红。
+const SAMPLE_CASES = [
+  { sample: sampleOf('json'), expect: 'json', note: '示例：JSON' },
+  {
+    sample: sampleOf('log'),
+    expect: null,
+    expectLabel: 'Log',
+    note: '示例：日志（Monaco 无日志语言，只能如实提示不切换）',
+  },
+  { sample: sampleOf('config'), expect: 'ini', note: '示例：INI 配置' },
+];
 
 // 结构化规则应当直接判定的格式（不需要下载模型，瞬时完成）
 const RULE_CASES = [
@@ -361,7 +378,7 @@ export async function runDetectSelfTest() {
   let total = 0;
 
   log('--- 结构化规则层（不应触发模型下载）---');
-  for (const item of RULE_CASES) {
+  for (const item of [...RULE_CASES, ...SAMPLE_CASES]) {
     total += 1;
     if (await runCase(item, log)) passed += 1;
   }

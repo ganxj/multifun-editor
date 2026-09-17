@@ -25,7 +25,10 @@ export function canFormat(language) {
 
 /** 实际生效的格式化器名称，用于按钮提示；不支持时返回 null */
 export function getFormatterLabel(language) {
-  if (MONACO_NATIVE_LANGUAGES.has(language)) return 'Monaco 内置';
+  // 返回的是**稳定标识符**，不是给人看的文案：'Monaco' 的展示名由 i18n 层给出
+  // （中文「Monaco 内置」/ 英文 "Monaco built-in"），其余几个是专有名词、中英一致。
+  // 早先这里直接写死 'Monaco 内置'，界面改成双语后就成了漏网的中文。
+  if (MONACO_NATIVE_LANGUAGES.has(language)) return 'Monaco';
   const entry = TEXT_FORMATTERS[language];
   return entry ? entry.label : null;
 }
