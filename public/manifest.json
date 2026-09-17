@@ -1,6 +1,6 @@
 {
-  "short_name": "JSON Editor",
-  "name": "Multifunctional JSON Editor",
+  "short_name": "peek",
+  "name": "peek 一瞥",
   "icons": [
     {
       "src": "img/logo.png",

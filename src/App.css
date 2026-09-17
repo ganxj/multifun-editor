@@ -22,6 +22,14 @@
   margin-left: 10px; /* 为logo留出空间 */
 }
 
+/* 品牌 tagline：跟在标题后，字号更小、略透，不抢标题视觉 */
+.app-tagline {
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .logo {
   height: 30px;
   margin-right: 10px;

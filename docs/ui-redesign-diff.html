@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>peek · 新设计稿变更说明（v2 UI）</title>
+<style>
+  :root{
+    --brand:#7C3AED; --brand-dark:#5B21B6; --brand-bg:#F3E8FF; --brand-line:#DDD6FE;
+    --ink:#18181B; --ink2:#52525B; --ink3:#A1A1AA;
+    --bg:#FAFAFA; --card:#ffffff; --line:#E4E4E7;
+    --red:#c62828; --red-bg:#fdecea; --amber:#8d6e00; --amber-bg:#fff8e1;
+    --green:#2e7d32; --green-bg:#e8f5e9; --gray-bg:#f4f6f8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0 0 60px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.65; color:var(--ink); background:var(--bg);
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  header.top{
+    background:#1E1B2E; color:#fff; padding:24px 0; margin-bottom:26px;
+    border-bottom:3px solid var(--brand);
+  }
+  header.top .wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  header.top h1{margin:0; font-size:21px; font-weight:600; letter-spacing:.2px;}
+  header.top .meta{margin-left:auto; font-size:12px; opacity:.88; text-align:right; line-height:1.5;}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:11px; font-size:11px;
+    background:rgba(124,58,237,.35); border:1px solid rgba(167,139,250,.6); margin-left:6px;
+  }
+  h2{
+    font-size:17px; font-weight:600; color:var(--ink); margin:40px 0 14px;
+    padding-left:11px; border-left:4px solid var(--brand);
+  }
+  h3{font-size:15px; font-weight:600; margin:26px 0 10px; color:var(--ink);}
+  h4{font-size:13.5px; font-weight:600; margin:18px 0 8px; color:var(--ink2);}
+  p{margin:9px 0;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; margin:14px 0;
+  }
+  table{width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; background:#fff;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--brand-bg); color:var(--brand-dark); font-weight:600; white-space:nowrap;}
+  td code, p code, li code{
+    background:var(--gray-bg); padding:1px 5px; border-radius:3px;
+    font-family:Consolas,"Courier New",monospace; font-size:12px; color:#b1004a;
+  }
+  ul,ol{margin:8px 0; padding-left:22px;}
+  li{margin:4px 0;}
+  .tag{
+    display:inline-block; padding:1px 7px; border-radius:3px; font-size:11.5px;
+    font-weight:600; white-space:nowrap;
+  }
+  .t-new{background:var(--red-bg); color:var(--red);}
+  .t-chg{background:var(--amber-bg); color:var(--amber);}
+  .t-keep{background:var(--green-bg); color:var(--green);}
+  .t-info{background:var(--brand-bg); color:var(--brand-dark);}
+  .t-gray{background:var(--gray-bg); color:var(--ink2);}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:16px 0;}
+  .kpi{background:#fff; border:1px solid var(--line); border-radius:8px; padding:13px 15px;}
+  .kpi .n{font-size:22px; font-weight:600; color:var(--brand-dark); line-height:1.2;}
+  .kpi .l{font-size:12px; color:var(--ink2); margin-top:3px;}
+  .callout{
+    border-left:4px solid var(--brand); background:#fff; padding:12px 16px;
+    border-radius:0 6px 6px 0; margin:14px 0;
+  }
+  .callout.warn{border-left-color:#e6a700; background:#fffdf5;}
+  .callout.danger{border-left-color:var(--red); background:#fffafa;}
+  .callout strong{color:var(--brand-dark);}
+  .callout.warn strong{color:var(--amber);}
+  .callout.danger strong{color:var(--red);}
+  .disclaimer{
+    font-size:12px; color:var(--ink3); border-top:1px dashed var(--line);
+    margin-top:34px; padding-top:14px;
+  }
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:760px){ .two{grid-template-columns:1fr;} header.top .meta{margin-left:0; text-align:left;} }
+  .swatch{display:inline-block; width:13px; height:13px; border-radius:3px; vertical-align:-2px; border:1px solid rgba(0,0,0,.16); margin-right:5px;}
+  /* 改动热区示意 */
+  .mock{border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0; background:#fff; font-size:11.5px;}
+  .mock .row{padding:8px 12px; display:flex; align-items:center; gap:9px;}
+  .mock .split{display:flex; min-height:120px;}
+  .mock .lft{width:34%; border-right:1px solid var(--line); padding:9px 12px;}
+  .mock .rgt{flex:1; padding:9px 12px;}
+  .lvl{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px;}
+  .lvl.r{background:#e53935;} .lvl.y{background:#f9a825;} .lvl.g{background:#43a047;}
+  code.q{background:#fff7ed; color:#9a3412;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>peek · 新设计稿变更说明</h1>
+      <div style="font-size:12.5px;opacity:.9;margin-top:4px;">
+        依据：Figma 设计稿主界面截图（node-id 5-5）｜ 对照基线：当前已部署版本（容器 peek，localhost:38880）
+      </div>
+    </div>
+    <div class="meta">
+      文档日期 2026-09-17<br />
+      状态：<strong>待评审，未改代码</strong>
+      <span class="badge">v2 UI</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="callout">
+  <strong>一句话结论：这不是换肤，是一次信息架构重构。</strong>
+  截图里的改动可以分成 5 类——<em>换色（样式）</em>、<em>搬家（结构）</em>、<em>全新的底部状态栏</em>、<em>文案全面双语化</em>、<em>2 项新增功能设置</em>。
+  其中真正会牵动代码结构的是<strong>双语方案</strong>、<strong>缩进设置</strong>和<strong>字体</strong>这三件，它们各自都有一个必须先定的前提（见第四节）。
+  单纯照图换颜色，只占全部工作量的大约 1/4。
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">5</div><div class="l">个区域全部有改动</div></div>
+  <div class="kpi"><div class="n">4</div><div class="l">个新增组件 / 控件</div></div>
+  <div class="kpi"><div class="n">15</div><div class="l">处双语文案改动点</div></div>
+  <div class="kpi"><div class="n">3</div><div class="l">个必须先定的前提</div></div>
+  <div class="kpi"><div class="n">≈14</div><div class="l">人日（粗估，不含设置面板）</div></div>
+</div>
+
+<h2>一、改动热区：哪里动了，动得多深</h2>
+
+<div class="mock">
+  <div class="row" style="background:#1E1B2E;color:#fff;">
+    <span class="lvl r"></span><strong>顶栏</strong>
+    <span style="opacity:.75;">深色底 + tagline + EN/中文 切换 + 设置入口 + New Tab 按钮</span>
+  </div>
+  <div class="row" style="background:#fafafa;border-top:1px solid var(--line);">
+    <span class="lvl r"></span><strong>工具栏</strong>
+    <span style="color:var(--ink2);">按钮加图标、英文在前、新增「缩进」下拉、自动识别改开关</span>
+  </div>
+  <div class="split" style="border-top:1px solid var(--line);">
+    <div class="lft" style="background:#fafafa;">
+      <span class="lvl y"></span><strong>历史面板</strong>
+      <div style="color:var(--ink2);margin-top:5px;">宽度收窄 · 白底 · 卡片化<br />加语言徽章 / 相对时间 / Clear 按钮</div>
+    </div>
+    <div class="rgt">
+      <span class="lvl g"></span><strong>编辑区</strong>
+      <div style="color:var(--ink2);margin-top:5px;">结构保留 · 换字体与配色 · minimap 疑似去掉</div>
+    </div>
+  </div>
+  <div class="row" style="background:#fafafa;border-top:1px solid var(--line);">
+    <span class="lvl r"></span><strong>底部状态栏</strong>
+    <span style="color:var(--ink2);">全新组件，当前项目里完全不存在</span>
+  </div>
+</div>
+<p style="font-size:12.5px;color:var(--ink2);">
+  <span class="lvl r" style="vertical-align:0;"></span>重做 &nbsp;
+  <span class="lvl y" style="vertical-align:0;"></span>重构 &nbsp;
+  <span class="lvl g" style="vertical-align:0;"></span>微调
+</p>
+
+<h2>二、逐区域解读（我看到的 vs 现状）</h2>
+
+<h3>2.1 顶栏</h3>
+<table>
+  <tr><th style="width:150px;">设计稿</th><th>现状</th><th style="width:88px;">类型</th></tr>
+  <tr>
+    <td>深色底（近黑紫），三点式布局</td>
+    <td><code>#2196F3</code> 蓝底，左右两段</td>
+    <td><span class="tag t-chg">改样式</span></td>
+  </tr>
+  <tr>
+    <td>Logo 是紫底圆角方块 + 白色字母</td>
+    <td><code>img/logo.png</code> 位图，30px 高</td>
+    <td><span class="tag t-chg">需换素材</span></td>
+  </tr>
+  <tr>
+    <td>品牌旁小字：Real-time format &amp; manipulation tool ｜ 极简实时格式化与数据处理</td>
+    <td>「贴进来，看一眼就够」（上一轮刚加的）</td>
+    <td><span class="tag t-chg">改文案</span></td>
+  </tr>
+  <tr>
+    <td><strong>EN / 中文</strong> 语言切换</td>
+    <td>无</td>
+    <td><span class="tag t-new">新增</span></td>
+  </tr>
+  <tr>
+    <td><strong>齿轮图标</strong>（设置入口）</td>
+    <td>无</td>
+    <td><span class="tag t-new">新增</span></td>
+  </tr>
+  <tr>
+    <td>⚡ + New Tab 新页面</td>
+    <td>「新页面」纯文字按钮</td>
+    <td><span class="tag t-chg">加图标</span></td>
+  </tr>
+  <tr style="background:#fafafa;">
+    <td>看不到语言选择下拉框</td>
+    <td>下拉框在这里（40 种语言，带两个分组）</td>
+    <td><span class="tag t-new">❓待定</span></td>
+  </tr>
+</table>
+
+<div class="callout danger">
+  <strong>⚠️ 最需要澄清的一处：手动选择语言的入口去哪了？</strong><br />
+  现状里这个下拉框不只是「选语言」——它还挂着一个关键逻辑：<em>手动选过语言后会自动暂停自动识别</em>，防止粘贴的内容把用户明确指定的语言又改回去。
+  设计稿顶栏和工具栏里都找不到它。三种可能，实现路径完全不同：
+  <ul style="margin:6px 0 0;">
+    <li><strong>(a) 有意取消手动选择</strong>，完全依赖自动识别 → 需要确认：识别不准时用户怎么办？</li>
+    <li><strong>(b) 收进「Format JSON」按钮变成下拉按钮</strong>（点=格式化，展开=换语言）→ 交互要用一套自定义下拉，不能用原生 <code>&lt;select&gt;</code></li>
+    <li><strong>(c) 收进齿轮设置面板</strong> → 换语言要多点两次，频次不低，体验有损</li>
+  </ul>
+</div>
+
+<h3>2.2 工具栏</h3>
+<table>
+  <tr><th style="width:150px;">设计稿</th><th>现状</th><th style="width:88px;">类型</th></tr>
+  <tr>
+    <td>白底，按钮分两类：主按钮（紫色实心）+ 次按钮（白底描边）</td>
+    <td><code>#e3f2fd</code> 淡蓝底，按钮全是白底蓝边</td>
+    <td><span class="tag t-chg">改样式</span></td>
+  </tr>
+  <tr>
+    <td>按钮文案英文在前：<br />Format JSON 格式化 / Unescape 去除转义 / Compress 压缩</td>
+    <td>纯中文：格式化 JSON / 去除转义 / 压缩</td>
+    <td><span class="tag t-chg">改文案</span></td>
+  </tr>
+  <tr>
+    <td>每个按钮带图标（闪电 / 转义符 / 压缩）</td>
+    <td>纯文字，项目当前<strong>零图标依赖</strong></td>
+    <td><span class="tag t-new">新增</span></td>
+  </tr>
+  <tr>
+    <td><strong>2 Spaces / 2格缩进</strong> 下拉</td>
+    <td>无（走 Monaco 默认 4 空格）</td>
+    <td><span class="tag t-new">新增功能</span></td>
+  </tr>
+  <tr>
+    <td>Auto Detect / 自动检测 + <strong>toggle 开关</strong>，靠右</td>
+    <td>「自动识别语言」+ 原生 <strong>checkbox</strong>，靠右</td>
+    <td><span class="tag t-chg">换控件</span></td>
+  </tr>
+  <tr>
+    <td>设计稿里看不到「格式化器：xxx」提示与识别结果提示条</td>
+    <td>有：<code>.toolbar-hint</code> 与 <code>.detect-notice</code>（4 种状态配色）</td>
+    <td><span class="tag t-new">❓待定</span></td>
+  </tr>
+</table>
+
+<h3>2.3 左侧历史面板</h3>
+<table>
+  <tr><th style="width:150px;">设计稿</th><th>现状</th><th style="width:88px;">类型</th></tr>
+  <tr>
+    <td>标题「History 历史记录」+ 右侧 <strong>Clear 清空</strong> 按钮</td>
+    <td>只有「历史记录」，<strong>没有清空</strong>（只能一条条删）</td>
+    <td><span class="tag t-new">新增</span></td>
+  </tr>
+  <tr>
+    <td>每条是独立卡片：圆角、有边框、卡片间有空隙</td>
+    <td>用 <code>border-bottom</code> 分隔的列表项，无卡片感</td>
+    <td><span class="tag t-chg">重构</span></td>
+  </tr>
+  <tr>
+    <td><strong>语言徽章</strong>：彩色小块（JSON 紫 / MARKDOWN 蓝 / BASH 绿），在左下</td>
+    <td>语言是塞进正文的纯文本前缀：<code>[json] &#123;userId...</code></td>
+    <td><span class="tag t-new">新增</span></td>
+  </tr>
+  <tr>
+    <td><strong>相对时间</strong>：2 min ago / 15 min ago / 1 hr ago / Yesterday，在右上</td>
+    <td>绝对时间字符串（<code>toLocaleString()</code>），在最上方一行</td>
+    <td><span class="tag t-chg">改写逻辑</span></td>
+  </tr>
+  <tr>
+    <td>内容预览用<strong>等宽字体</strong>，单行截断</td>
+    <td>普通字体 + 截断（<code>truncateContent</code>）</td>
+    <td><span class="tag t-chg">改样式</span></td>
+  </tr>
+  <tr>
+    <td>首条卡片呈<strong>选中态</strong>（描边加深）</td>
+    <td>只有 hover 态，没有选中态（历史项与当前编辑器内容无关联）</td>
+    <td><span class="tag t-new">新增状态</span></td>
+  </tr>
+  <tr>
+    <td>宽度目测约 205px，白底</td>
+    <td>250px，淡蓝底 <code>#f0f8ff</code></td>
+    <td><span class="tag t-chg">改样式</span></td>
+  </tr>
+</table>
+
+<h3>2.4 编辑区</h3>
+<table>
+  <tr><th style="width:150px;">设计稿</th><th>现状</th><th style="width:88px;">类型</th></tr>
+  <tr>
+    <td>结构与现状一致（行号 + 代码区）</td>
+    <td>同上</td>
+    <td><span class="tag t-keep">保留</span></td>
+  </tr>
+  <tr>
+    <td>字体是 Geist Mono 的观感</td>
+    <td>Monaco 默认等宽字体栈</td>
+    <td><span class="tag t-chg">改字体</span></td>
+  </tr>
+  <tr>
+    <td>语法高亮是暖色系（key 紫、字符串橙棕）</td>
+    <td><code>theme="vs"</code>（Monaco 默认浅色主题）</td>
+    <td><span class="tag t-chg">需自定义主题</span></td>
+  </tr>
+  <tr>
+    <td>右侧<strong>看不到 minimap</strong></td>
+    <td><code>minimap: &#123; enabled: true &#125;</code> 开着</td>
+    <td><span class="tag t-new">❓待定</span></td>
+  </tr>
+</table>
+
+<h3>2.5 底部状态栏（全新）</h3>
+<div class="callout warn">
+  <strong>这是整个设计稿里唯一一个从零开始的组件</strong>，也是牵动逻辑最多的一个。当前项目底部什么都没有。
+</div>
+<table>
+  <tr><th style="width:190px;">设计稿显示</th><th>需要什么数据</th><th style="width:88px;">成本</th></tr>
+  <tr>
+    <td>● Ready / 就绪（绿点）</td>
+    <td>把现在散在 4 个 state 里的状态（<code>formatting</code> / <code>detecting</code> / <code>detection</code> / 无错误态）统一成状态机</td>
+    <td><span class="tag t-new">中</span></td>
+  </tr>
+  <tr>
+    <td>Ln 12, Col 21</td>
+    <td>监听 Monaco <code>onDidChangeCursorPosition</code></td>
+    <td><span class="tag t-chg">低</span></td>
+  </tr>
+  <tr>
+    <td>Size / 大小: 2.48 KB</td>
+    <td>内容字节数。<strong>注意</strong>：<code>text.length</code> 是字符数不是字节数，中文 1 字 = 3 字节，必须按 UTF-8 真实计算，否则中文内容下数值会错</td>
+    <td><span class="tag t-chg">低</span></td>
+  </tr>
+  <tr>
+    <td>JSON (Bilingual)</td>
+    <td>当前语言名。<strong>「Bilingual」含义待确认</strong>（见第四节 Q3）</td>
+    <td><span class="tag t-new">❓待定</span></td>
+  </tr>
+  <tr>
+    <td>UTF-8</td>
+    <td>纯展示即可，但它是一句<strong>承诺</strong>——用户会以为「导出/下载时编码是 UTF-8」。项目现在还没有导出功能，这个位置更该显示「将来下载的文件编码」</td>
+    <td><span class="tag t-gray">纯展示</span></td>
+  </tr>
+</table>
+
+<h3>2.6 配色对照（目测，需你核对）</h3>
+<div class="callout warn">
+  <strong>以下色值全部是我从截图上目测的，不是精确值</strong>，请勿直接照抄进代码。
+  想要精确值有两个办法：在 Figma 里选中对应元素把右侧面板的色值发我，或者给我一个只读 token 我直接拉（详见上一轮的「方式②」）。
+</div>
+<table>
+  <tr><th style="width:170px;">用途</th><th style="width:200px;">设计稿（目测）</th><th>现状</th></tr>
+  <tr><td>品牌主色 / 主按钮 / 开关开态</td><td><span class="swatch" style="background:#7C3AED;"></span><code>#7C3AED</code> 紫</td><td><code>#2196F3</code> 蓝</td></tr>
+  <tr><td>顶栏底</td><td><span class="swatch" style="background:#1E1B2E;"></span><code>#1E1B2E</code> 深紫黑</td><td><code>#2196F3</code></td></tr>
+  <tr><td>页面底 / 面板底</td><td><span class="swatch" style="background:#FFFFFF;"></span>白 / <code>#FAFAFA</code></td><td><code>#f5f5dc</code>（米白）/ <code>#f0f8ff</code></td></tr>
+  <tr><td>工具栏底</td><td><span class="swatch" style="background:#FFFFFF;"></span>白</td><td><code>#e3f2fd</code></td></tr>
+  <tr><td>边框 / 分割线</td><td><span class="swatch" style="background:#E4E4E7;"></span><code>#E4E4E7</code></td><td><code>#bbdefb</code></td></tr>
+  <tr><td>次要文字（时间、hint）</td><td><span class="swatch" style="background:#71717A;"></span><code>#71717A</code></td><td><code>#5b6b7a</code></td></tr>
+  <tr><td>状态栏 Ready 点</td><td><span class="swatch" style="background:#22C55E;"></span><code>#22C55E</code> 绿</td><td>—（无此元素）</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--ink2);">
+  顺带一个观察：设计稿的紫色 + 浅灰边框 + 圆角卡片，是典型的一线 SaaS 观感，比现状的「蓝色 + 淡蓝底」专业不少。
+  <strong>换肤本身没有风险</strong>，前提是先把色值定死、并且集中到 CSS 变量里（见第五节）。
+</p>
+
+<h2>三、功能层面的变动（你提到的「可能有些功能上的变动」）</h2>
+<p>我把截图里<strong>能看到的新增能力</strong>挑出来，按「一定会动逻辑」和「纯视觉」分开：</p>
+
+<h3>3.1 一定会动逻辑的 5 项</h3>
+<table>
+  <tr><th style="width:150px;">功能</th><th>设计稿依据</th><th>逻辑影响</th></tr>
+  <tr>
+    <td><strong>缩进设置</strong></td>
+    <td>工具栏「2 Spaces / 2格缩进」下拉</td>
+    <td>改 Monaco 的 <code>tabSize</code>/<code>insertSpaces</code> 只是表面；<strong>真正的难点是各格式化器的缩进是写死的</strong>（详见第四节冲突 A）</td>
+  </tr>
+  <tr>
+    <td><strong>界面双语</strong></td>
+    <td>EN / 中文 切换 + 所有控件英文在前</td>
+    <td>当前 20+ 处文案硬编码中文散在 <code>App.js</code>，另有一批是识别子系统<strong>动态拼接</strong>生成的，不是查字典能解决的（详见第四节冲突 B）</td>
+  </tr>
+  <tr>
+    <td><strong>历史清空</strong></td>
+    <td>「Clear 清空」按钮</td>
+    <td>简单，但<strong>必须加二次确认</strong>——这是不可逆的批量删除，而现在连单条删除都没有确认</td>
+  </tr>
+  <tr>
+    <td><strong>相对时间</strong></td>
+    <td>2 min ago / Yesterday</td>
+    <td>需要格式化函数，且要<strong>每分钟重新渲染</strong>才会走字（否则「1 min ago」放一小时还是「1 min ago」）</td>
+  </tr>
+  <tr>
+    <td><strong>历史选中态</strong></td>
+    <td>首条卡片有描边</td>
+    <td>需要给历史项与当前编辑器建立「当前加载的是哪条」的关联状态；现在的数据里没有这个字段</td>
+  </tr>
+</table>
+
+<h3>3.2 只是视觉的 3 项</h3>
+<ul>
+  <li><strong>图标</strong>：建议用内联 SVG，不引任何图标库——项目现在零图标依赖，为一个工具栏引入 iconfont 或 react-icons 不值当。</li>
+  <li><strong>开关控件</strong>：checkbox 换成 toggle。用一个 <code>role="switch"</code> 的按钮 + CSS 实现即可，不引 UI 库。</li>
+  <li><strong>卡片化</strong>：历史项从「分隔线列表」改成「卡片列表」，纯 CSS。</li>
+</ul>
+
+<h3>3.3 设计稿里「缺席」的东西（同样重要）</h3>
+<table>
+  <tr><th style="width:230px;">现状有、设计稿没有</th><th>建议</th></tr>
+  <tr>
+    <td>「格式化器：Ruff」提示（<code>.toolbar-hint</code>）</td>
+    <td>这是本项目<strong>差异化能力的展示窗口</strong>（告诉用户用的是同源格式化器）。建议保留，挪进底部状态栏更合适</td>
+  </tr>
+  <tr>
+    <td>识别结果提示条（<code>.detect-notice</code>，4 种配色状态）</td>
+    <td>这是「粘贴自动识别」这个核心卖点的<strong>唯一反馈</strong>，不能删。建议保留在工具栏右侧，或整合进状态栏</td>
+  </tr>
+  <tr>
+    <td>语言下拉框（40 种）</td>
+    <td>见 2.1 的红框，必须澄清</td>
+  </tr>
+  <tr>
+    <td>minimap</td>
+    <td>见第四节 Q6</td>
+  </tr>
+</table>
+
+<h2>四、三个必须先定的前提 + 待你拍板的问题</h2>
+
+<div class="callout danger">
+  <strong>冲突 A：缩进设置在各格式化器上是「物理不等价」的</strong><br />
+  下拉框看着简单，但现状是每个格式化器的缩进<strong>写死在代码里</strong>，而且<strong>有一个改不了</strong>：
+  <table style="margin:9px 0 4px;">
+    <tr><th style="width:230px;">语言 / 格式化器</th><th>缩进现状</th><th style="width:120px;">能否被下拉控制</th></tr>
+    <tr><td>JSON / JS / TS / HTML / CSS（Monaco 内置）</td><td>跟随 Monaco 选项</td><td><span class="tag t-keep">可以</span></td></tr>
+    <tr><td>C / C++ / Java（clang-format）</td><td>Google 风格 = 2 空格</td><td><span class="tag t-keep">可以</span>（有 <code>IndentWidth</code> 参数）</td></tr>
+    <tr><td>C#（clang-format）</td><td>Microsoft 风格 = 4 空格</td><td><span class="tag t-keep">可以</span></td></tr>
+    <tr><td>Python（Ruff）</td><td><code>indent_width: 4</code></td><td><span class="tag t-keep">可以</span></td></tr>
+    <tr><td>Go（gofmt）</td><td>官方强制 Tab</td><td><span class="tag t-new">做不到</span></td></tr>
+  </table>
+  同时还要先定这个下拉的<strong>作用范围</strong>：
+  <ul style="margin:6px 0 0;">
+    <li><strong>(a) 只管编辑器里按 Tab 的输入</strong>——不碰格式化器。约 0.5 人日，语义简单。</li>
+    <li><strong>(b) 同时管格式化输出</strong>——要改 4 个格式化器的参数传递，还要向用户解释「为什么 Go 不听话」。约 1.5 人日。</li>
+  </ul>
+</div>
+
+<div class="callout danger">
+  <strong>冲突 B：双语文案有两种截然不同的做法，工作量差 2 倍</strong><br />
+  设计稿里每个控件都画成了「英文 中文」并排。<strong>但顶栏又有一个 EN / 中文 切换器</strong>，这就产生了歧义：
+  <div class="two" style="margin:10px 0 2px;">
+    <div class="card" style="margin:0;padding:12px 15px;">
+      <strong>(a) 双语并显</strong>
+      <p style="margin:6px 0 0;font-size:13px;">每个控件同时显示两种文字，切换器闲置或用来自定义顺序。<br />
+      成本低：只是把文案字符串改掉。<br />
+      <em>代价</em>：按钮普遍变宽近一倍，工具栏可能放不下（现在已经有 4 个控件 + 2 个提示）。</p>
+    </div>
+    <div class="card" style="margin:0;padding:12px 15px;">
+      <strong>(b) 按语言切换</strong>
+      <p style="margin:6px 0 0;font-size:13px;">点 EN 只显示英文，点中文只显示中文。<br />
+      成本高：需要一套 i18n 字典 + 组件全部改写成查表。<br />
+      <em>额外难点</em>：识别子系统的提示是<strong>动态拼接</strong>的，例如<br />
+      <code class="q">未发现任何 TypeScript 专有语法，按 JavaScript 处理（模型判为 TypeScript）</code><br />
+      这类文案要先改造成「模板 + 参数」才能翻译。</p>
+    </div>
+  </div>
+  <p style="margin:8px 0 0;">
+    <strong>我的建议</strong>：走 (b)，但分两期——第一期只覆盖界面控件文案（约 25 条），识别提示与 <code>alert</code>/<code>confirm</code> 弹窗文案放第二期。
+    理由：截图里明确画了语言切换器，说明你要的是「切换」；(a) 的双语并排会让工具栏拥挤，和设计稿的清爽观感自相矛盾。
+    <br /><strong>另一个建议</strong>：不引 i18next 之类的库，用手写词典 + React Context 即可（当前项目无任何状态库，引库会打破「零依赖」的一致性）。
+  </p>
+</div>
+
+<div class="callout danger">
+  <strong>冲突 C：Geist 没有中文字形</strong><br />
+  Geist 是 Vercel 的开源字体（SIL OFL 1.1，商用免费），但它<strong>只有拉丁字母</strong>。
+  设计稿里的「格式化」「历史记录」「就绪」这些中文，浏览器会自动回落到系统默认中文字体——
+  结果就是<strong>中英文风格割裂</strong>（Geist 的 x-height 和字面跟苹方/微软雅黑差得很明显）。
+  <table style="margin:9px 0 4px;">
+    <tr><th style="width:200px;">方案</th><th>效果</th><th style="width:130px;">体积代价</th></tr>
+    <tr><td>只用 Geist + 系统中文兜底</td><td>中文部分随系统变（Windows 是雅黑、Mac 是苹方），<strong>无法保证设计稿观感</strong></td><td>0</td></tr>
+    <tr><td>Geist + 打包思源黑体 / Noto Sans SC</td><td>完全统一，可控</td><td><strong>+1~2MB</strong>（子集化后）</td></tr>
+    <tr><td>Geist + 系统中文，但微调字重/字距</td><td>折中，需要实际渲染对比调</td><td>0</td></tr>
+  </table>
+  两个实现注意点：<br />
+  ① 字体文件必须<strong>放进项目本地打包</strong>，不能引 Google Fonts CDN——项目核心卖点是「离线/内网可用、不依赖外部 CDN」，引 CDN 会自毁卖点。<br />
+  ② <strong>Monaco 编辑器不吃 CSS 的 font-family</strong>，必须单独传 <code>editor.updateOptions(&#123; fontFamily &#125;)</code>，这处很容易漏。
+</div>
+
+<h3>4.1 待你拍板（按优先级）</h3>
+<table>
+  <tr><th style="width:44px;">#</th><th style="width:230px;">问题</th><th>为什么必须问</th><th style="width:78px;">阻塞</th></tr>
+  <tr>
+    <td>Q1</td>
+    <td><strong>手动选择语言的入口在哪？</strong>取消 / 并入 Format 按钮 / 收进设置？</td>
+    <td>它是「手动选语言后暂停自动识别」这条逻辑的载体，不是纯 UI 问题</td>
+    <td><span class="tag t-new">阻塞</span></td>
+  </tr>
+  <tr>
+    <td>Q2</td>
+    <td><strong>双语是「并显」还是「切换」？</strong>默认哪种语言？</td>
+    <td>决定是否要建 i18n 架构，工作量差 2 倍，且影响所有组件的写法</td>
+    <td><span class="tag t-new">阻塞</span></td>
+  </tr>
+  <tr>
+    <td>Q3</td>
+    <td>状态栏的 <strong>「JSON (Bilingual)」</strong>是什么意思？</td>
+    <td>「Bilingual」字面是「双语」，它出现在状态栏很奇怪。是指「界面处于双语模式」，还是这一格的格式没写完？</td>
+    <td><span class="tag t-new">阻塞</span></td>
+  </tr>
+  <tr>
+    <td>Q4</td>
+    <td><strong>缩进设置管到哪一层？</strong>只影响 Tab 输入，还是也管格式化输出？</td>
+    <td>决定要不要改 4 个格式化器的参数传递（冲突 A）</td>
+    <td><span class="tag t-chg">高</span></td>
+  </tr>
+  <tr>
+    <td>Q5</td>
+    <td><strong>齿轮点开是什么？</strong>截图里看不到，有设计吗？</td>
+    <td>如果没有，建议先放一个空面板占位，或第一期先隐藏</td>
+    <td><span class="tag t-chg">高</span></td>
+  </tr>
+  <tr>
+    <td>Q6</td>
+    <td><strong>minimap 是故意去掉的吗？</strong></td>
+    <td>「看一眼」的场景里 minimap 占用宽度又几乎没用，我倾向去掉；但得你确认</td>
+    <td><span class="tag t-gray">中</span></td>
+  </tr>
+  <tr>
+    <td>Q7</td>
+    <td><strong>只有这一屏吗？</strong>空状态 / 设置面板 / 英文版 / 历史为空 / 格式化中的 loading 态？</td>
+    <td>边界状态的设计价值往往比正常态高，缺了就只能我自己拍脑袋补</td>
+    <td><span class="tag t-gray">中</span></td>
+  </tr>
+  <tr>
+    <td>Q8</td>
+    <td><strong>历史记录的保存时机要不要改？</strong></td>
+    <td>现在只有点「新页面」才存。而设计稿里有 5 条不同时间的记录，暗示可能改成每次粘贴/自动存草稿都入历史——这会直接影响「自动草稿恢复」那个 P0 缺陷的解法</td>
+    <td><span class="tag t-gray">中</span></td>
+  </tr>
+  <tr>
+    <td>Q9</td>
+    <td><strong>中文字体用哪个？</strong>（冲突 C 的三选一）</td>
+    <td>影响观感和包体积</td>
+    <td><span class="tag t-gray">中</span></td>
+  </tr>
+  <tr>
+    <td>Q10</td>
+    <td>顶部 tagline 换成「Real-time format &amp; manipulation tool ｜ 极简实时格式化与数据处理」？</td>
+    <td>上一轮刚定的是「贴进来，看一眼就够」。新 tagline 更偏功能说明，旧更偏场景。两者定位不同，需要你选一个</td>
+    <td><span class="tag t-gray">低</span></td>
+  </tr>
+</table>
+
+<h2>五、建议的实施方式</h2>
+
+<h3>5.1 先立「设计令牌」，再动界面</h3>
+<p>
+  现在的颜色是<strong>散落在 App.css 各处的字面值</strong>（<code>#2196F3</code> 出现 10 次以上）。
+  直接逐条改色会留下大量漏网的旧蓝。建议第一步先把颜色、圆角、间距、字号抽成 CSS 变量集中在 <code>:root</code>，
+  再改值——这样换肤是「改 12 个变量」而不是「改 80 处字面值」。
+  这一步<strong>不改变任何外观</strong>，是纯粹的准备工作，但能让后面每一步都快。
+</p>
+
+<h3>5.2 四批推进（合计约 14 人日）</h3>
+<table>
+  <tr><th style="width:70px;">批次</th><th style="width:250px;">内容</th><th>为什么这个顺序</th><th style="width:80px;">人日</th></tr>
+  <tr>
+    <td><strong>第 1 批</strong><br /><span class="tag t-info">地基</span></td>
+    <td>设计令牌（CSS 变量）<br />Geist + 中文兜底字体本地打包<br />i18n 架构 + 界面文案抽取</td>
+    <td>都不改变外观，但后面每一步都依赖它们。先做可以避免「先换肤再抽文案」的二次返工</td>
+    <td>4.5</td>
+  </tr>
+  <tr>
+    <td><strong>第 2 批</strong><br /><span class="tag t-info">换肤</span></td>
+    <td>顶栏（深色 + tagline + 语言切换器 + 设置入口）<br />工具栏（图标 + 主次按钮 + toggle）<br />左栏与编辑区配色</td>
+    <td>这一步做完，外观与设计稿基本一致，可以拿去评审</td>
+    <td>3.5</td>
+  </tr>
+  <tr>
+    <td><strong>第 3 批</strong><br /><span class="tag t-info">新组件</span></td>
+    <td>底部状态栏（含状态机统一）<br />缩进下拉<br />历史面板重构（徽章 / 相对时间 / 清空 / 选中态）</td>
+    <td>这些是独立新件，可以逐个交付、逐个验收</td>
+    <td>5</td>
+  </tr>
+  <tr>
+    <td><strong>第 4 批</strong><br /><span class="tag t-info">收尾</span></td>
+    <td>设置面板占位<br />自检用例补充 + 全量回归 + 重新部署</td>
+    <td>改完 UI 必须补自检——项目现有的 12 + 24 项自检覆盖的是<strong>算法</strong>，UI 大改后需要新增界面级断言，否则「页面白屏但自检全绿」这类问题会重演</td>
+    <td>1</td>
+  </tr>
+</table>
+
+<h3>5.3 两个必须守住的底线</h3>
+<div class="callout">
+  <strong>底线一：改完必须补 UI 级自检。</strong>
+  项目现在的自检跑的是「算法对不对」，<code>cdp-selftest.js --only=paste</code> 才勉强算 UI 级。
+  这次重写顶栏、工具栏、左栏、新增状态栏，属于<strong>大面积 DOM 变更</strong>，
+  必须新增：状态栏数值正确性断言、历史徽章与语言一致断言、清空确认后条数为 0 的断言。<br /><br />
+  <strong>底线二：不要在这一批里顺手改功能逻辑。</strong>
+  「历史静默丢数据」「当前内容不落盘」这两个 P0 缺陷还在。
+  如果一边换肤一边修数据，出问题时无法判断是样式改动还是逻辑改动引起的。
+  <strong>先把 UI 落地，再处理数据缺陷</strong>——除非你希望合并做（那样建议重新排期）。
+</div>
+
+<h2>六、本文件的边界</h2>
+<div class="callout">
+  <ul style="margin:0;">
+    <li>本文件<strong>只基于你提供的 1 张主界面截图</strong>，不含其他 Frame。</li>
+    <li><strong>所有色值、字号、间距均为目测</strong>，未经 Figma 精确值核对，不能直接照抄进代码。</li>
+    <li>「新增功能」的判断是<strong>从画面反推</strong>的，我没有看到交互稿或原型说明，<strong>不排除有些是纯装饰</strong>。</li>
+    <li>人日估算<strong>未逐项拆分到函数级</strong>，是量级参考，不是承诺。</li>
+    <li>本次<strong>未修改任何代码</strong>，仅产出本文档。</li>
+  </ul>
+</div>
+
+<div class="disclaimer">
+  peek · 新设计稿变更说明（v2 UI）｜ 生成于 2026-09-17 ｜ 对照基线：容器 <code>peek</code> @ localhost:38880 ｜
+  配套文档：<code>docs/product-roadmap.html</code>（现状盘点与功能规划）
+</div>
+
+</div>
+</body>
+</html>

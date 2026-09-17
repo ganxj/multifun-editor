@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>peek · 现状盘点与下一步功能规划</title>
+<style>
+  :root{
+    --blue:#2196F3; --blue-dark:#1565c0; --blue-bg:#e3f2fd; --blue-line:#bbdefb;
+    --ink:#1f2d3d; --ink2:#5b6b7a; --ink3:#8b9aa8;
+    --bg:#f5f5dc; --card:#ffffff; --line:#e3e8ee;
+    --red:#c62828; --red-bg:#fdecea; --amber:#8d6e00; --amber-bg:#fff8e1;
+    --green:#2e7d32; --green-bg:#e8f5e9; --gray-bg:#f4f6f8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0 0 60px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.65; color:var(--ink); background:var(--bg);
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  header.top{
+    background:var(--blue); color:#fff; padding:22px 0; margin-bottom:26px;
+    border-bottom:3px solid var(--blue-dark);
+  }
+  header.top .wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  header.top h1{margin:0; font-size:21px; font-weight:600; letter-spacing:.2px;}
+  header.top .meta{margin-left:auto; font-size:12px; opacity:.9; text-align:right; line-height:1.5;}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:11px; font-size:11px;
+    background:rgba(255,255,255,.22); border:1px solid rgba(255,255,255,.5); margin-left:6px;
+  }
+  h2{
+    font-size:17px; font-weight:600; color:var(--ink); margin:38px 0 14px;
+    padding-left:11px; border-left:4px solid var(--blue);
+  }
+  h3{font-size:15px; font-weight:600; margin:24px 0 10px; color:var(--ink);}
+  h4{font-size:13.5px; font-weight:600; margin:18px 0 8px; color:var(--ink2);}
+  p{margin:9px 0;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; margin:14px 0;
+  }
+  table{width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; background:#fff;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--blue-bg); color:var(--blue-dark); font-weight:600; white-space:nowrap;}
+  td code, p code, li code{
+    background:var(--gray-bg); padding:1px 5px; border-radius:3px;
+    font-family:Consolas,"Courier New",monospace; font-size:12px; color:#b1004a;
+  }
+  ul,ol{margin:8px 0; padding-left:22px;}
+  li{margin:4px 0;}
+  .tag{
+    display:inline-block; padding:1px 7px; border-radius:3px; font-size:11.5px;
+    font-weight:600; white-space:nowrap;
+  }
+  .t-p0{background:var(--red-bg); color:var(--red);}
+  .t-p1{background:var(--amber-bg); color:var(--amber);}
+  .t-p2{background:var(--green-bg); color:var(--green);}
+  .t-info{background:var(--blue-bg); color:var(--blue-dark);}
+  .t-gray{background:var(--gray-bg); color:var(--ink2);}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:16px 0;}
+  .kpi{background:#fff; border:1px solid var(--line); border-radius:8px; padding:13px 15px;}
+  .kpi .n{font-size:22px; font-weight:600; color:var(--blue-dark); line-height:1.2;}
+  .kpi .l{font-size:12px; color:var(--ink2); margin-top:3px;}
+  .callout{
+    border-left:4px solid var(--blue); background:#fff; padding:12px 16px;
+    border-radius:0 6px 6px 0; margin:14px 0;
+  }
+  .callout.warn{border-left-color:#e6a700; background:#fffdf5;}
+  .callout.danger{border-left-color:var(--red); background:#fffafa;}
+  .callout strong{color:var(--blue-dark);}
+  .callout.warn strong{color:var(--amber);}
+  .callout.danger strong{color:var(--red);}
+  .phase{
+    border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:16px 0; background:#fff;
+  }
+  .phase > .head{
+    padding:11px 18px; background:var(--blue-bg); border-bottom:1px solid var(--blue-line);
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+  }
+  .phase > .head .name{font-size:15px; font-weight:600; color:var(--blue-dark);}
+  .phase > .head .sub{font-size:12.5px; color:var(--ink2);}
+  .phase > .head .eff{margin-left:auto; font-size:12px; color:var(--ink2);}
+  .phase > .body{padding:14px 18px;}
+  .disclaimer{
+    font-size:12px; color:var(--ink3); border-top:1px dashed var(--line);
+    margin-top:34px; padding-top:14px;
+  }
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:760px){ .two{grid-template-columns:1fr;} header.top .meta{margin-left:0; text-align:left;} }
+  .checklist li{list-style:none; position:relative; padding-left:18px;}
+  .checklist li::before{
+    content:""; position:absolute; left:2px; top:9px;
+    width:6px; height:6px; border-radius:2px; background:var(--blue);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>peek · 现状盘点与下一步功能规划</h1>
+      <div style="font-size:12.5px;opacity:.92;margin-top:4px;">
+        代码基线 ff192d7 ｜ 部署地址 http://localhost:38880/ ｜ 部署产物与工作区一致
+      </div>
+    </div>
+    <div class="meta">
+      规划日期 2026-09-17<br />
+      规划周期 Now / Next / Later
+      <span class="badge">离线·内网工具方向</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<h2>一、结合代码看：这个项目实际做的是什么</h2>
+
+<p>先给结论：<strong>它已经不是一个「JSON 格式化工具」了</strong>。README 和页面标题还写着 Multifunctional JSON Editor，但代码里真正投入的资产是另外三块——多语言格式化、粘贴自动识别语言、完全离线运行。命名落后于实现，这是本次规划要解决的第一个问题（见第二节）。<br /><span style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:4px;background:#E8F5E9;color:#2E7D32;font-size:12px;">✓ 已于 2026-09-17 落地：产品名定为 <code>peek</code> / 「一瞥」，tagline「贴进来，看一眼就够」</span></p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">11</div><div class="l">种语言可格式化</div></div>
+  <div class="kpi"><div class="n">40</div><div class="l">种语言可高亮（下拉框可选）</div></div>
+  <div class="kpi"><div class="n">54</div><div class="l">类自动识别（含无高亮的 TOML/CSV 等）</div></div>
+  <div class="kpi"><div class="n">2,171</div><div class="l">行业务代码行数（零测试文件）</div></div>
+  <div class="kpi"><div class="n">0</div><div class="l">后端 / 路由 / 状态库 / CDN 依赖</div></div>
+</div>
+
+<h3>1.1 已实现的能力清单（需求 → 代码位置）</h3>
+
+<table>
+  <tr><th style="width:130px;">需求</th><th style="width:250px;">实现方式</th><th>代码位置</th><th style="width:90px;">成熟度</th></tr>
+  <tr>
+    <td><strong>多语言格式化</strong></td>
+    <td>Monaco 内置语言服务（json/js/ts/html/css）+ 三个 WASM 格式化器（clang-format / Ruff / gofmt）统一分发</td>
+    <td><code>src/format/index.js</code> · <code>src/format/textFormatters.js</code></td>
+    <td><span class="tag t-p2">完备</span></td>
+  </tr>
+  <tr>
+    <td><strong>选区格式化</strong></td>
+    <td>有选区走 <code>formatSelection</code>／只换选区文本；用 <code>executeEdits + pushUndoStop</code> 保证可撤销</td>
+    <td><code>format/index.js:56-114</code></td>
+    <td><span class="tag t-p2">完备</span></td>
+  </tr>
+  <tr>
+    <td><strong>粘贴自动识别语言</strong></td>
+    <td>三层：结构化规则 → guesslang 模型 → JS/TS 混淆纠正；只监听 <code>onDidPaste</code></td>
+    <td><code>src/detect/</code>（index / rules / modelDetector / refine）</td>
+    <td><span class="tag t-p2">完备</span></td>
+  </tr>
+  <tr>
+    <td><strong>「拿不准就不动」策略</strong></td>
+    <td>识别不出、置信度 &lt;0.2、或 Monaco 无该语言时，如实提示而不切换；手动选语言后自动暂停识别</td>
+    <td><code>App.js:80-118, 313-321</code></td>
+    <td><span class="tag t-p2">完备</span></td>
+  </tr>
+  <tr>
+    <td><strong>JSON 压缩 / 去转义</strong></td>
+    <td>压缩仅 JSON 可用（<code>canCompress</code> 控制置灰）；去转义为两层正则近似反转义</td>
+    <td><code>App.js:156-232</code> · <code>format/index.js:34</code></td>
+    <td><span class="tag t-p1">可用有隐患</span></td>
+  </tr>
+  <tr>
+    <td><strong>历史记录</strong></td>
+    <td>手动点「新页面」时把当前内容存入 localStorage，带语言字段；旧记录自动补 <code>json</code></td>
+    <td><code>App.js:38-66, 234-279</code></td>
+    <td><span class="tag t-p0">有严重风险</span></td>
+  </tr>
+  <tr>
+    <td><strong>离线 / 内网可用</strong></td>
+    <td>Monaco 本地打包、格式化器 wasm 随构建产物输出、模型权重本地托管，不走任何 CDN</td>
+    <td><code>App.js:10</code> · <code>craco.config.js</code></td>
+    <td><span class="tag t-p2">完备</span></td>
+  </tr>
+  <tr>
+    <td><strong>自检与自动化回归</strong></td>
+    <td>12 项格式化自检 + 24 项识别自检 + 粘贴链路 UI 级 e2e，CDP 无头跑批带退出码</td>
+    <td><code>src/*SelfTest.js</code> · <code>.workbuddy/tools/cdp-selftest.js</code></td>
+    <td><span class="tag t-p2">优于同级项目</span></td>
+  </tr>
+</table>
+
+<p>本次已在部署版本上跑过回归：格式化 <strong>12/12</strong>、识别 <strong>24/24</strong>、粘贴链路 e2e 通过，运行时零未捕获异常，退出码 0。部署产物与工作区源码一致（<code>build/index.html</code> 与容器内一致，主包 <code>main.b414654c.js</code>）。<strong>即当前基线是健康的，不含已知功能性故障。</strong></p>
+
+<h3>1.2 真正的技术资产（护城河在哪）</h3>
+<div class="card">
+  <ol class="checklist">
+    <li><strong>跨语言的「代码整理」能力</strong>——竞品几乎清一色只做 JSON 一种格式，我们一次覆盖 11 种，且 C/C++/Java/C#/Python/Go 用的是与本地工具链同源的格式化器（clang-format / Ruff / gofmt），不是自己写的近似实现。这一条别人短期抄不走。</li>
+    <li><strong>粘贴即识别</strong>——从「先选语言再粘贴」变成「粘完就对了」。规则层可解释（会告诉你判定依据），模型层兜底，还有针对 JS/TS 的语法纠正。这个体验 VS Code 级别才有。</li>
+    <li><strong>零外传 + 零后端</strong>——没有服务端，数据不出浏览器；部署只是一个 nginx 静态目录。这让它天然适配「代码不能贴到公网工具」的场景。</li>
+    <li><strong>可回归的质量基建</strong>——自检覆盖了「页面不报错但功能静默失效」这类最难发现的问题（含 App 挂载断言、展示名断言）。多数同类个人项目没有这层。</li>
+  </ol>
+</div>
+
+<h3>1.3 现存缺陷与风险（按严重度）</h3>
+
+<p>这些是我读代码时确认的、会真实伤害用户的问题，不是风格偏好。</p>
+
+<table>
+  <tr><th style="width:60px;">级别</th><th style="width:190px;">问题</th><th>后果与依据</th><th style="width:110px;">位置</th></tr>
+  <tr>
+    <td><span class="tag t-p0">P0</span></td>
+    <td><strong>历史记录会静默丢数据</strong></td>
+    <td>条数无上限、单条大小无上限，localStorage 只有约 5MB 配额。写满后 <code>setItem</code> 抛 <code>QuotaExceededError</code>，代码只 <code>console.error</code> 就过去了——<strong>用户不会收到任何提示，只会发现历史记录莫名其妙少了一段</strong>。这是"用户辛苦编辑的内容凭空消失"，属于信任级问题。</td>
+    <td><code>App.js:59-66</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p0">P0</span></td>
+    <td><strong>当前编辑内容不落盘</strong></td>
+    <td>只有点「新页面」才会保存。刷新、误关标签页、断电 → 正在编辑的内容全丢，且没有任何草稿机制。对「粘贴一段 JSON 临时看/改」的核心场景来说，这是最频繁的数据损失路径。</td>
+    <td><code>App.js:234-255</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p1">P1</span></td>
+    <td><strong>没有文件进出通道</strong></td>
+    <td>不能拖拽打开文件、不能下载/另存、不能一键复制全文。用户拿到一个 <code>.json</code>/<code>.py</code> 文件，得先用别的编辑器打开、全选、复制、再粘进来，出去时反向再来一遍。这是"编辑器"的基本盘缺失。</td>
+    <td>全文件无实现</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p1">P1</span></td>
+    <td><strong>没有校验反馈</strong></td>
+    <td>Monaco 其实已经算出了 JSON 语法错误的行列（诊断信息就在模型里），但界面完全没有暴露。用户压缩失败只会看到一个 <code>alert('Invalid JSON format: ...')</code>，不会定位到第几行第几列。</td>
+    <td><code>App.js:189-191</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p1">P1</span></td>
+    <td><strong>去转义逻辑不幂等、嵌套会错</strong></td>
+    <td>两次全局正则近似反转义，<code>\\\\"</code> 这类嵌套转义会处理错，且重复点两次结果不同。用户无法预期结果。</td>
+    <td><code>App.js:207-215</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p2">P2</span></td>
+    <td><strong>历史面板无法收起</strong></td>
+    <td><code>showHistory</code> 只有初始值 <code>true</code>，没有任何地方能改它——250px 宽度永久占用，小屏/窄窗口下编辑器被挤。</td>
+    <td><code>App.js:19</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p2">P2</span></td>
+    <td><strong>无快捷键</strong></td>
+    <td>格式化没有快捷键，压缩没有快捷键，保存没有快捷键。工具类产品的重度用户 100% 靠键盘，这块目前是空白。</td>
+    <td>全文件无实现</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p2">P2</span></td>
+    <td><strong>命名与能力错配</strong></td>
+    <td>页面标题、README 都叫 JSON Editor，但实际支持 40 种语言识别、11 种格式化。新用户看到标题不会知道它能处理 Python/Go/Java，自己人也容易低估它的能力边界。</td>
+    <td>README · <code>App.js:334</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-p2">P2</span></td>
+    <td><strong>「离线可用」名不副实</strong></td>
+    <td>没有 Service Worker，首次访问仍需连到服务器。"离线"目前只等于"不依赖外网/CDN"，不等于"断网能用"。定位口号比实现大了一步。</td>
+    <td>无 <code>public/sw.js</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag t-gray">P3</span></td>
+    <td><strong>零使用数据</strong></td>
+    <td>没有任何埋点。哪个语言最常用、识别准不准、用户卡在哪一步——全靠猜。所有优先级判断目前都只能是判断而非证据。</td>
+    <td>全文件无实现</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-gray">P3</span></td>
+    <td><strong>无测试文件</strong></td>
+    <td>装了整套 testing-library 但零测试。现有自检很能打，但它只覆盖算法与两条 UI 链路，重构类改动（比如引入多标签）缺乏安全网。</td>
+    <td>全项目无 <code>*.test.js</code></td>
+  </tr>
+</table>
+
+<h3>1.4 与行业基线对比</h3>
+
+<p>横向拉了一下主流在线 JSON 工具的能力（数据来源：2026 年 2 月的公开对比），用它来校准"我们的短板里哪些是行业标配、哪些是真差异化"：</p>
+
+<table>
+  <tr>
+    <th style="width:170px;">能力</th><th>本项目</th><th>JSON Formatter Pro</th><th>JSONLint</th><th>CodeBeautify</th>
+  </tr>
+  <tr><td>多语言格式化（非 JSON）</td><td><strong>11 种</strong></td><td>无</td><td>无</td><td>无</td></tr>
+  <tr><td>粘贴自动识别语言</td><td><strong>有（54 类）</strong></td><td>无</td><td>无</td><td>无</td></tr>
+  <tr><td>数据是否外传</td><td><strong>零外传</strong></td><td>纯客户端</td><td>上传服务器</td><td>上传服务器</td></tr>
+  <tr><td>可私有化/内网部署</td><td><strong>支持（单容器）</strong></td><td>否</td><td>否</td><td>否</td></tr>
+  <tr><td>文件打开 / 下载</td><td>缺失</td><td>有</td><td>无</td><td>有</td></tr>
+  <tr><td>校验错误定位</td><td>缺失</td><td>有</td><td>有（强）</td><td>有</td></tr>
+  <tr><td>双面板 Diff 对比</td><td>缺失</td><td>内置</td><td>无</td><td>独立工具</td></tr>
+  <tr><td>JSON ↔ YAML/XML/CSV 转换</td><td>缺失</td><td>有</td><td>无</td><td>有</td></tr>
+  <tr><td>树视图</td><td>缺失</td><td>有</td><td>有</td><td>有</td></tr>
+  <tr><td>快捷键盘</td><td>缺失</td><td>完整</td><td>基础</td><td>有限</td></tr>
+  <tr><td>内容大小上限</td><td>未测</td><td>2MB</td><td>400KB</td><td>1MB</td></tr>
+</table>
+
+<div class="callout">
+  <strong>读表要点：</strong>我们的短板（文件进出、校验定位、Diff、转换、树视图）<strong>全部是行业标配</strong>，属于"不做就落后"的及格线；我们的强项（多语言、自动识别、零外传、可私有部署）<strong>竞品一个都没做</strong>，属于"做了就能立住"的差异点。<br />
+  这意味着规划的重心应该是：<strong>用最短路径补齐及格线，把资源集中在差异点上做出"只有我们能做到"的体验。</strong>
+</div>
+
+<h2>二、定位：先想清楚这是什么，再决定做什么</h2>
+
+<h3>2.1 一句话定位（建议）</h3>
+<div class="card" style="border-left:4px solid var(--blue);">
+  <p style="margin:0;font-size:15px;"><strong>不联网也能用的多语言代码整理台</strong>——粘贴任意代码，自动认出是什么语言，用与本地工具链同源的格式化器整理好；数据一个字节都不出你的电脑，整套东西一个容器就能部署进内网。</p>
+</div>
+
+<p>这比旧的"Multifunctional JSON Editor"准确，且三个卖点都能被代码兑现：自动认出（detect 子系统）、同源整理（wasm-fmt）、不出电脑（零后端 + 本地打包）。对外名称已定为 <code>peek</code> / 「一瞥」。</p>
+
+<h3>2.2 目标用户与核心场景</h3>
+
+<table>
+  <tr><th style="width:160px;">用户</th><th style="width:240px;">典型场景</th><th>为什么选我们而不是 jsonformatter.org</th></tr>
+  <tr>
+    <td><strong>内网/受监管环境的开发者</strong><br /><span style="color:var(--ink2);font-size:12px;">金融、政企、涉密单位</span></td>
+    <td>把一段配置或日志粘到工具里整理，但代码不允许出网</td>
+    <td>公网工具一律不可用（数据外传）或访问不了（无外网）。我们是唯一能私有化部署的选项</td>
+  </tr>
+  <tr>
+    <td><strong>多语言混用的后端 / 全栈开发者</strong><br /><span style="color:var(--ink2);font-size:12px;">同一个项目里 Java + Python + SQL + JSON</span></td>
+    <td>一天里要整理五六种不同格式的片段，不想为每种语言开一个工具</td>
+    <td>一个页面覆盖 11 种格式化器，粘贴即识别，不用先在下拉框里找语言</td>
+  </tr>
+  <tr>
+    <td><strong>需要临时看代码的运维 / 测试</strong></td>
+    <td>拿到一段别人给的代码或配置，要快速看懂结构与层级</td>
+    <td>高亮 + 格式化 + 语言判定一步到位，不需要装任何 IDE</td>
+  </tr>
+</table>
+
+<div class="callout warn">
+  <strong>必须承认的数据缺口：</strong>以上用户画像是基于「代码里已投入的能力」反推的合理假设，<strong>不是用户研究的结论</strong>——项目目前零埋点、零访谈。所以本规划的优先级标注为"判断级"而非"证据级"。第四节给出把判断变成证据的最小方案。
+</div>
+
+<h3>2.3 战略分叉（需要你拍板）</h3>
+
+<div class="two">
+  <div class="card">
+    <h4 style="margin-top:0;">方向 A：离线·内网研发工具 <span class="tag t-info">建议主攻</span></h4>
+    <p style="font-size:13px;">面向"代码不能出网"的团队，强化私有部署、零外传、本地一致性。技术选型已经完全站在这一侧（无后端、本地打包、Docker），继续投入是顺势。</p>
+    <p style="font-size:13px;margin-bottom:0;"><strong>代价：</strong>用户量天花板低，价值靠"团队内使用深度"而非流量。</p>
+  </div>
+  <div class="card">
+    <h4 style="margin-top:0;">方向 B：公网开发者工具站</h4>
+    <p style="font-size:13px;">与 jsonformatter.org / CodeBeautify 正面竞争，靠"多语言 + 无广告 + 隐私"差异化。</p>
+    <p style="font-size:13px;margin-bottom:0;"><strong>代价：</strong>红海、需要 SEO 与持续运营，且必须补齐全部及格线功能才有入场资格——投入产出比明显更差。</p>
+  </div>
+</div>
+
+<p><strong>我的建议：以 A 为主目标，B 作为自然溢出渠道。</strong>理由：差异化选择应该顺着已有资产走，而不是逆着走。我们花了力气把 Monaco、wasm 格式化器、模型权重全部本地化——这份投入只有在"离线/内网"场景下才能变现；在公网站点上，用户根本感知不到它，反而会拿我们和功能更全的竞品比长短。</p>
+
+<h2>三、下一步功能规划</h2>
+
+<h3>3.1 四条投资主线</h3>
+
+<table>
+  <tr><th style="width:150px;">主线</th><th>要解决的问题</th><th style="width:260px;">成功的样子</th></tr>
+  <tr><td><strong>L1 不丢数据</strong></td><td>历史会静默丢、刷新会丢当前内容——信任级缺陷</td><td>任何一次编辑都不会因为刷新/配额而消失，且用户能看到保存状态</td></tr>
+  <tr><td><strong>L2 进得来出得去</strong></td><td>没有文件通道、没有快捷键——"编辑器"基本盘缺失</td><td>拖一个文件进去就能编辑，一键下载/复制出去，全程可以不用鼠标</td></tr>
+  <tr><td><strong>L3 看得懂数据</strong></td><td>没有校验定位、没有转换——JSON 场景的及格线</td><td>粘贴畸形 JSON 立刻指出第几行错在哪；一键在 JSON/YAML/CSV/TS 类型之间转换</td></tr>
+  <tr><td><strong>L4 把护城河做宽</strong></td><td>差异化能力（多语言）覆盖广度还不够，识别低置信时体验生硬</td><td>YAML/XML/SQL/Markdown 也能格式化；识别拿不准时给出候选让用户一点即改</td></tr>
+</table>
+
+<h3>3.2 分阶段路线图</h3>
+
+<div class="phase">
+  <div class="head">
+    <span class="name">Now · 第 1 个月</span>
+    <span class="sub">主线 L1 + L2：先把「不丢数据」和「文件基本盘」做掉</span>
+    <span class="eff">约 8 人日</span>
+  </div>
+  <div class="body">
+    <table>
+      <tr><th style="width:210px;">功能</th><th>做什么</th><th style="width:110px;">验收标准</th></tr>
+      <tr>
+        <td><strong>1. 历史容量治理</strong><br /><span class="tag t-p0">P0</span></td>
+        <td>条数上限（如 50 条）、单条大小上限、超限按时间淘汰；<code>setItem</code> 失败必须给可视反馈（工具栏红色提示 + 建议清理），不再只打 console</td>
+        <td>写满配额时用户能看到提示并知道怎么办；不出现"记录莫名消失"</td>
+      </tr>
+      <tr>
+        <td><strong>2. 自动草稿恢复</strong><br /><span class="tag t-p0">P0</span></td>
+        <td>编辑内容防抖写入 sessionStorage；刷新/重开页面后自动恢复，并提示"已恢复上次未保存内容"；提供"丢弃"按钮</td>
+        <td>编辑到一半刷新，内容仍在；不会误覆盖用户主动新建的空文档</td>
+      </tr>
+      <tr>
+        <td><strong>3. 文件打开与导出</strong><br /><span class="tag t-p1">P1</span></td>
+        <td>拖拽/选择文件读入（按文件名后缀联动语言）；一键下载（按当前语言推导扩展名）；一键复制全文</td>
+        <td>拖 <code>.py</code> 进去自动切 Python 并高亮；下载得到正确扩展名的文件</td>
+      </tr>
+      <tr>
+        <td><strong>4. JSON 校验与错误定位</strong><br /><span class="tag t-p1">P1</span></td>
+        <td>把 Monaco 已有的诊断信息暴露成底部状态条：错误/警告计数 + 点击跳转到出错行列 + 可读错误文案，替换现在的 <code>alert</code></td>
+        <td>粘贴畸形 JSON 时指出具体行列，点击可定位</td>
+      </tr>
+      <tr>
+        <td><strong>5. 快捷键</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>Alt+Shift+F 格式化、Ctrl/Cmd+S 存入历史、Ctrl/Cmd+Enter 压缩、Ctrl/Cmd+O 打开文件</td>
+        <td>全流程可不用鼠标完成一次"打开→格式化→保存"</td>
+      </tr>
+      <tr>
+        <td><strong>6. 历史面板收起 + 空状态</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>补上缺失的 setter，加收起按钮并记住偏好；空列表给引导文案而不是一片空白</td>
+        <td>窄窗口下可腾出编辑器空间</td>
+      </tr>
+      <tr>
+        <td><strong>7. 品牌与命名对齐</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>标题、README、页面副标题统一到新定位；在首页明确写出"支持 11 种格式化 / 40 种高亮 / 零外传"</td>
+        <td>新用户 5 秒内知道这工具能干什么、数据怎么处理</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="head">
+    <span class="name">Next · 第 2-3 个月</span>
+    <span class="sub">主线 L3 + L4：补齐 JSON 及格线，把多语言护城河做宽</span>
+    <span class="eff">约 10 人日</span>
+  </div>
+  <div class="body">
+    <table>
+      <tr><th style="width:210px;">功能</th><th>做什么</th><th style="width:110px;">验收标准</th></tr>
+      <tr>
+        <td><strong>8. 格式转换</strong><br /><span class="tag t-p1">P1</span></td>
+        <td>JSON ↔ YAML / XML / CSV，以及 JSON → TypeScript interface / Java POJO（后端开发者高频需求，且是我们的用户群强相关）</td>
+        <td>转换结果可一键写回编辑器或下载；非法输入有明确报错</td>
+      </tr>
+      <tr>
+        <td><strong>9. 扩展格式化器覆盖</strong><br /><span class="tag t-p1">P1</span></td>
+        <td>补 YAML、XML、SQL、Markdown、TOML 的格式化器（可复用现有 wasm-fmt / 轻量纯 JS 实现）。注意沿用 <code>languages.json</code> 单一数据源与统一入口约定</td>
+        <td>格式化器覆盖从 11 种提升到 16 种以上；自检同步扩充</td>
+      </tr>
+      <tr>
+        <td><strong>10. 识别结果可干预</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>低置信或模型给了多个候选时，工具栏提示里直接列出 top-3 候选，点一下即切换；替换现在"猜对了就切、猜错了沉默"的二元行为</td>
+        <td>识别不确定时用户有一次点击就纠正的机会</td>
+      </tr>
+      <tr>
+        <td><strong>11. 历史记录检索</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>按语言筛选 + 关键词搜索（内容匹配），列表支持重命名</td>
+        <td>50 条以上历史时仍能 3 秒内找到目标</td>
+      </tr>
+      <tr>
+        <td><strong>12. 深色主题</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>Monaco theme 切换 + 界面配色跟随，偏好持久化</td>
+        <td>主题切换后工具栏、历史面板、编辑器配色一致</td>
+      </tr>
+      <tr>
+        <td><strong>13. 本地埋点</strong><br /><span class="tag t-p2">P2</span></td>
+        <td>纯 localStorage 事件计数，无后端、不外传（与定位一致）：语言使用分布、识别命中/失败率、格式化成功率、导出次数、错误类型</td>
+        <td>能回答"哪个语言最常用""识别准不准"——为下一轮优先级提供证据</td>
+      </tr>
+      <tr>
+        <td><strong>14. 去转义逻辑重写</strong><br /><span class="tag t-p1">P1</span></td>
+        <td>改成正确的逐层反转义（幂等、支持嵌套），并在界面上说明"去除一层"的含义</td>
+        <td>对同一内容多次执行结果稳定；嵌套转义结果正确</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="head">
+    <span class="name">Later · 第 3-6 个月</span>
+    <span class="sub">按投入产出比排序的战略性投入，等埋点数据回来后再定取舍</span>
+    <span class="eff">约 17 人日</span>
+  </div>
+  <div class="body">
+    <table>
+      <tr><th style="width:210px;">功能</th><th>做什么</th><th style="width:110px;">为什么放 Later</th></tr>
+      <tr><td><strong>15. 双面板 Diff 对比</strong></td><td>左右双编辑器 + 差异高亮 + 同步滚动；对 JSON 做语义级对比（忽略键序）</td><td>竞品标配且价值高，但工程量大（约 4 人日），需在及格线补完后做</td></tr>
+      <tr><td><strong>16. 多标签 / 多文档</strong></td><td>把破坏性的「新页面」模型换成标签页，状态按标签隔离</td><td>要重构状态模型；先用"自动草稿 + 历史"覆盖 80% 诉求，用数据验证是否真的需要</td></tr>
+      <tr><td><strong>17. 树视图 / JSONPath</strong></td><td>可折叠树视图；路径查询过滤并高亮命中节点</td><td>对超深嵌套的大 JSON 价值明显，但需先验证大文件场景是否真实存在</td></tr>
+      <tr><td><strong>18. 大内容性能验证</strong></td><td>10MB 级 JSON 的加载、格式化、压缩实测与优化边界（Monaco 虚拟化配置、worker 策略）</td><td>先测再优化，避免过早投入</td></tr>
+      <tr><td><strong>19. 真离线（PWA）</strong></td><td>Service Worker 缓存全部产物 + 补齐真实尺寸图标（现在 manifest 指向 1MB 的 logo.png）+ 可安装到桌面</td><td>让"离线可用"名副其实，也打开"双击即用"的轻量桌面场景</td></tr>
+      <tr><td><strong>20. 中英双语界面</strong></td><td>i18n 抽取 + 语言切换（现在界面中文、标题英文，混搭感明显）</td><td>若确定走 B 方向（公网）则提前；走 A 方向可延后</td></tr>
+      <tr><td><strong>21. 单元测试补齐</strong></td><td>对 <code>rules.js</code> / <code>refine.js</code> / <code>format</code> 分发层写 jest 用例，与现有自检互补</td><td>为后面重构（多标签、转换）提供安全网</td></tr>
+    </table>
+  </div>
+</div>
+
+<h3>3.3 优先级打分（ICE）</h3>
+
+<p>项目目前没有使用数据，无法填 RICE 里的 Reach，因此先用 ICE（Impact × Confidence × Ease，各项 1-10）做初排；等第 13 项埋点上线后，可以升级成完整 RICE 重排一次。</p>
+
+<table>
+  <tr><th style="width:40px;">#</th><th style="width:200px;">功能</th><th style="width:60px;">影响</th><th style="width:60px;">把握</th><th style="width:60px;">省力</th><th style="width:70px;">ICE</th><th>说明</th></tr>
+  <tr><td>1</td><td>历史容量治理</td><td>9</td><td>9</td><td>9</td><td><strong>729</strong></td><td>影响面全覆盖、实现简单、后果最严重——三项都高</td></tr>
+  <tr><td>2</td><td>自动草稿恢复</td><td>8</td><td>8</td><td>9</td><td><strong>576</strong></td><td>防住最高频的数据丢失路径</td></tr>
+  <tr><td>3</td><td>文件打开与导出</td><td>8</td><td>9</td><td>8</td><td><strong>576</strong></td><td>行业标配、用户有明确预期、实现路径清晰</td></tr>
+  <tr><td>7</td><td>品牌与命名对齐</td><td>7</td><td>8</td><td>10</td><td><strong>560</strong></td><td>半天工作量，直接影响认知与传播</td></tr>
+  <tr><td>4</td><td>JSON 校验与错误定位</td><td>8</td><td>9</td><td>7</td><td><strong>504</strong></td><td>数据已在模型里，只差 UI 暴露</td></tr>
+  <tr><td>6</td><td>历史面板收起 + 空状态</td><td>5</td><td>9</td><td>10</td><td><strong>450</strong></td><td>半天补齐一个明显的半成品</td></tr>
+  <tr><td>5</td><td>快捷键</td><td>6</td><td>8</td><td>9</td><td><strong>432</strong></td><td>重度用户感知强，成本极低</td></tr>
+  <tr><td>12</td><td>深色主题</td><td>5</td><td>9</td><td>9</td><td><strong>405</strong></td><td>低成本体验分</td></tr>
+  <tr><td>8</td><td>格式转换</td><td>7</td><td>8</td><td>6</td><td><strong>336</strong></td><td>价值高，但需要引入转换库并处理边界</td></tr>
+  <tr><td>11</td><td>历史检索</td><td>5</td><td>8</td><td>8</td><td><strong>320</strong></td><td>依赖第 1 项的上限策略先落地</td></tr>
+  <tr><td>13</td><td>本地埋点</td><td>5</td><td>7</td><td>9</td><td><strong>315</strong></td><td>本身不产生用户价值，但解锁后续所有证据级决策</td></tr>
+  <tr><td>9</td><td>扩展格式化器覆盖</td><td>7</td><td>7</td><td>6</td><td><strong>294</strong></td><td>直接加宽护城河，但每种语言都要单独验证</td></tr>
+  <tr><td>10</td><td>识别结果可干预</td><td>5</td><td>7</td><td>7</td><td><strong>245</strong></td><td>把识别从"魔法"变成"可控"</td></tr>
+  <tr><td>14</td><td>去转义逻辑重写</td><td>4</td><td>8</td><td>8</td><td><strong>256</strong></td><td>修既有缺陷，成本很低</td></tr>
+  <tr><td>19</td><td>真离线 PWA</td><td>5</td><td>7</td><td>6</td><td><strong>210</strong></td><td>让定位口号落地，需处理缓存版本策略</td></tr>
+  <tr><td>18</td><td>大内容性能验证</td><td>4</td><td>6</td><td>8</td><td><strong>192</strong></td><td>先测量，再决定是否优化</td></tr>
+  <tr><td>15</td><td>双面板 Diff</td><td>7</td><td>6</td><td>4</td><td><strong>168</strong></td><td><span style="color:var(--red);">ICE 低分但不可省</span>——竞品标配，只是工程量大</td></tr>
+  <tr><td>21</td><td>单元测试补齐</td><td>4</td><td>7</td><td>6</td><td><strong>168</strong></td><td>间接价值，靠后续重构需求拉动</td></tr>
+  <tr><td>20</td><td>中英双语</td><td>4</td><td>5</td><td>4</td><td><strong>80</strong></td><td>取决于战略分叉的选择</td></tr>
+  <tr><td>16</td><td>多标签 / 多文档</td><td>7</td><td>5</td><td>3</td><td><strong>105</strong></td><td><span style="color:var(--red);">ICE 低分但可能是真需求</span>——需埋点验证</td></tr>
+  <tr><td>17</td><td>树视图 / JSONPath</td><td>5</td><td>5</td><td>3</td><td><strong>75</strong></td><td>需求真实性未验证，最后考虑</td></tr>
+</table>
+
+<div class="callout warn">
+  <strong>分数的一个盲区，必须点出来：</strong>ICE 会系统性低估"工程量大但不可省"的项目。第 15 项（Diff）和第 16 项（多标签）分数垫底，但它们分别是<strong>竞品标配</strong>和<strong>可能的核心使用模式</strong>。这两项不该按分数排序处理，而应该<strong>先用埋点回答"用户是否真的需要"</strong>，再单独决策。分数用来排"该先做哪些小事"，不用来否决"该不该做大事"。
+</div>
+
+<h3>3.4 Non-goals（明确不做）</h3>
+
+<p>明确写下来，防止范围蔓延——尤其要防止"顺手加一个后端"这类会毁掉定位的动作。</p>
+
+<table>
+  <tr><th style="width:230px;">不做</th><th>理由</th></tr>
+  <tr><td><strong>不做账号体系与云同步</strong></td><td>"数据零外传"是核心卖点。一旦引入服务端存储，整个定位崩塌，且要背上合规责任</td></tr>
+  <tr><td><strong>不做分享链接 / 多人协作</strong></td><td>需要后端与内容托管，与上一条同因；且内网场景下链接分享无意义</td></tr>
+  <tr><td><strong>不做完整 IDE</strong></td><td>不加终端、调试器、包管理、多文件项目。我们是"片段整理台"，不是编辑器替代品</td></tr>
+  <tr><td><strong>不做 AI 生成 / 解释代码</strong></td><td>与"零外传"直接冲突；本地模型又会拖垮体积与首屏。若要做，必须是可选且默认关闭</td></tr>
+  <tr><td><strong>不做表单化 / 拖拽式数据建模</strong></td><td>树视图之后的形态，需求未验证，投入产出比不明</td></tr>
+  <tr><td><strong>不追求支持所有语言</strong></td><td>格式化器只补高频的（YAML/XML/SQL/Markdown/TOML）。长尾语言保持"能高亮、按钮置灰"的诚实状态即可</td></tr>
+</table>
+
+<h3>3.5 依赖关系</h3>
+
+<table>
+  <tr><th style="width:190px;">项目</th><th style="width:190px;">依赖</th><th>说明</th></tr>
+  <tr><td>11. 历史检索</td><td>→ 1. 历史容量治理</td><td>先定下上限与淘汰策略，检索才有稳定的数据规模可谈</td></tr>
+  <tr><td>8. 格式转换</td><td>→ 4. 校验与错误定位</td><td>转换的前提是能判断输入合法，错误定位的产出可直接复用</td></tr>
+  <tr><td>9. 扩展格式化器</td><td>→ 3. 文件打开导出</td><td>文件导入按后缀联动语言，新增语言的映射要先就位</td></tr>
+  <tr><td>16. 多标签</td><td>→ 2. 自动草稿恢复</td><td>草稿机制是多标签状态隔离的基础设施，先做草稿可顺带验证需求真伪</td></tr>
+  <tr><td>19. PWA</td><td>→ 7. 品牌与图标</td><td>需要真实尺寸的图标资源，现在那张 1MB 的 logo.png 不能直接用于安装</td></tr>
+</table>
+
+<h2>四、怎么知道做对了：度量体系</h2>
+
+<p>没有后端，所以指标必须是本地可算、不外传的。这部分本身就是第 13 项（本地埋点）要交付的东西。</p>
+
+<table>
+  <tr><th style="width:120px;">层级</th><th style="width:250px;">指标</th><th>为什么是它</th></tr>
+  <tr>
+    <td><strong>北极星</strong></td>
+    <td>每周「完成的整理动作」次数<br /><span style="color:var(--ink2);font-size:12px;">= 格式化成功 + 转换导出 + 校验通过 的合计</span></td>
+    <td>它不是访问量，而是"用户真的把一段代码整理好了"的次数——这正是本产品唯一的价值主张。访问量高但没人格式化成功，等于没价值</td>
+  </tr>
+  <tr>
+    <td rowspan="4"><strong>驱动指标</strong></td>
+    <td>粘贴识别命中率（成功切换 ÷ 触发识别）</td>
+    <td>这是我们的差异化体验，命中率掉到某个阈值以下，护城河就没了</td>
+  </tr>
+  <tr><td>识别未命中时的真实语言分布</td><td>直接告诉我们该补哪门语言的规则或纠正逻辑——避免凭感觉调参</td>
+  </tr>
+  <tr><td>各语言使用频次分布</td><td>决定第 9 项（扩展格式化器）的补全顺序，而不是按"哪个语言更知名"来排</td>
+  </tr>
+  <tr><td>导出 / 复制次数</td><td>衡量"进得来出得去"是否真的被用起来；如果长期为 0，说明第 3 项做错了方向</td>
+  </tr>
+  <tr>
+    <td rowspan="3"><strong>健康指标</strong></td>
+    <td>localStorage 写入失败次数</td>
+    <td>第 1 项的直接验收指标。上线后这个数必须为 0</td>
+  </tr>
+  <tr><td>草稿恢复触发次数</td><td>衡量第 2 项到底救了多少次数据</td></tr>
+  <tr><td>未捕获异常数 / 格式化器加载失败率</td><td>保持现有回归链路（含运行时错误收集）持续为 0</td></tr>
+</table>
+
+<h2>五、需要你拍板的三个决策</h2>
+
+<table>
+  <tr><th style="width:40px;">#</th><th style="width:200px;">决策点</th><th>选项与我的建议</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>战略方向选 A 还是 B？</strong></td>
+    <td><strong>建议 A（离线·内网工具）</strong>。这会决定第 20 项（i18n）是否要提前，以及是否值得为公网 SEO 做任何事。选 A 则本规划直接执行；选 B 需要额外补 Diff、树视图、JSONPath 才能入场</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>「新页面」的破坏性行为要不要改？</strong></td>
+    <td>现在是"保存并清空"，是个会劝退新用户的模型。<strong>建议先做自动草稿（第 2 项），用两周埋点数据看用户是否真的需要同时开多个文档</strong>，再决定第 16 项（多标签）的优先级。不建议现在就直接重构</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>愿不愿意为"证据"多花 1 人日？</strong></td>
+    <td>第 13 项（本地埋点）本身不产生用户可见价值，但它是唯一能把"我的判断"变成"数据"的手段。<strong>建议做</strong>，否则下一轮规划仍然只能靠猜</td>
+  </tr>
+</table>
+
+<div class="disclaimer">
+  <p><strong>本规划的假设与边界：</strong>① 用户画像与优先级为基于代码资产反推的<strong>判断级</strong>结论，项目零埋点、零用户访谈，尚未获得证据级支持；② 人日估算按"单人开发 + AI 辅助"口径，未含评审与回归成本，总量约 35 人日；③ 竞品能力数据来自 2026 年 2 月的公开对比，可能与当前版本有差异；④ 所有功能均需在实现后同步扩充现有自检用例（12 项格式化 / 24 项识别 / 粘贴链路 e2e），保持零 WARNING、exit 0 的验收基线。</p>
+</div>
+
+</div>
+</body>
+</html>

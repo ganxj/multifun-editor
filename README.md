@@ -1,10 +1,18 @@
-# Multifunctional JSON Editor
+# peek · 一瞥
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![MonacoEditor](https://img.shields.io/badge/MonacoEditor-000000?style=for-the-badge&logo=visual-studio-code&logoColor=white)
 
-一个功能强大的在线JSON编辑器，具有格式化、压缩、转义字符处理等功能。
+> 贴进来，看一眼就够。
+
+临时要看一段内容——JSON、日志、配置——以前得先开个记事本粘进去，不能高亮也不能格式化。
+peek 就是为这个场景做的：**粘贴进去，自动认出是什么语言，看一眼就够**。
+
+代码里真正的投入是这三块：**40 种语言高亮、54 类语言自动识别、11 种语言格式化**。
+全部处理都在浏览器本地完成，内容不会离开这台机器。
+
+名字取自英语 *take a peek*（瞄一眼）——看一眼，不用先建个文件。
 
 ## 功能特性
 
@@ -221,18 +229,19 @@ npm run build
 
 2. 然后构建Docker镜像：
    ```bash
-   docker build -t multifun-editor .
+   docker build -t peek:latest .
    ```
 
 ### 运行容器
 
 ```bash
-docker run -d -p 8080:80 multifun-editor
+docker rm -f peek   # 容器名会冲突，重新部署前先删掉旧容器
+docker run -d --name peek -p 38880:80 --restart always peek:latest
 ```
 
-访问 [http://localhost:8080](http://localhost:8080) 查看应用。
+访问 [http://localhost:38880](http://localhost:38880) 查看应用。
 
-> Docker部署的应用可以通过IP地址正常访问，例如：http://192.168.1.100:8080
+> Docker部署的应用可以通过IP地址正常访问，例如：http://192.168.1.100:38880
 
 ### 使用Docker Compose（可选）
 
@@ -241,10 +250,10 @@ docker run -d -p 8080:80 multifun-editor
 ```yaml
 version: '3.8'
 services:
-  multifun-editor:
+  peek:
     build: .
     ports:
-      - "8080:80"
+      - "38880:80"
 ```
 
 然后运行：

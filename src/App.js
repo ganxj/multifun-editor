@@ -330,8 +330,11 @@ function App() {
     <div className="App">
       <header className="App-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={`${process.env.PUBLIC_URL}/img/logo.png`} alt="Logo" className="logo" />
-          <h1>Multifunctional JSON Editor</h1>
+          <img src={`${process.env.PUBLIC_URL}/img/logo.png`} alt="peek" className="logo" />
+          <h1>
+            peek
+            <span className="app-tagline">贴进来，看一眼就够</span>
+          </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* 语言选择下拉框 */}
