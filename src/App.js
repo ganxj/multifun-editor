@@ -22,6 +22,9 @@ const STORAGE_KEY_HISTORY = 'jsonEditorHistory';
 const STORAGE_KEY_UI_LANG = 'peek.uiLang';
 // 当前编辑内容自动落盘，防刷新/误关丢失
 const STORAGE_KEY_DRAFT = 'peek.draft';
+// 草稿的语言与内容分开存：peek.draft 里是纯文本（那里存的东西不能动），
+// 语言是后加的一项，缺了就当没有（老草稿），见 readDraftLanguage
+const STORAGE_KEY_DRAFT_LANG = 'peek.draftLang';
 
 // ── 容量与阈值 ──────────────────────────────────────────────────────────
 // localStorage 只有约 5MB，写满后 setItem 抛 QuotaExceededError。
@@ -175,6 +178,28 @@ function readDraft() {
   }
 }
 
+/**
+ * 读草稿的语言。
+ *
+ * 为什么语言要跟草稿一起存：语言原先只是 state 的初始值（json），刷新后草稿回来了、
+ * 语言却没回来 —— 一段 Markdown 会被拿 JSON 的配色渲染（配色是错的，比没有高亮
+ * 更容易看错）。语言是内容的一个属性，由「粘贴时识别」和「手动指定」两处产生，
+ * 都该跟内容一起落盘（历史记录一直就是这么存的：{content, language}）。
+ *
+ * 只认清单里存在的语言 id：清单里删掉的语言、被改坏的存储值，一律当作没存过，
+ * 由调用方回落到默认值 / 补算，而不是把非法 id 塞给 Monaco。
+ *
+ * @returns {string|null} null 表示没存过或值无效
+ */
+function readDraftLanguage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_DRAFT_LANG);
+    return LANGUAGE_OPTIONS.some((option) => option.value === saved) ? saved : null;
+  } catch (error) {
+    return null;
+  }
+}
+
 function readMonacoFontFamily() {
   try {
     const value = getComputedStyle(document.documentElement).getPropertyValue('--font-mono');
@@ -215,7 +240,7 @@ function App() {
   const [code, setCode] = useState(readDraft);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(true);
-  const [language, setLanguage] = useState('json');
+  const [language, setLanguage] = useState(() => readDraftLanguage() || 'json');
   const [formatting, setFormatting] = useState(false);
   const [autoDetect, setAutoDetect] = useState(true);
   const [detecting, setDetecting] = useState(false);
@@ -226,6 +251,16 @@ function App() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [historyNotice, setHistoryNotice] = useState(null);
   const [draftRestored, setDraftRestored] = useState(() => Boolean(readDraft().trim()));
+  /**
+   * 「这份草稿没存过语言」——只可能为真一次。
+   *
+   * peek.draftLang 是后加的，升级上来的第一份草稿没有这一项，刷新后只能停在默认的 JSON，
+   * 所以要在编辑器挂载后补算一次（补算出来的语言紧接着就落盘了，之后不再走这条路）。
+   * 必须在这里一次算清并固化：落盘 effect 很快会把 draftLang 写上，之后再读就永远是「有语言」。
+   */
+  const [draftNeedsLanguage] = useState(
+    () => Boolean(readDraft().trim()) && readDraftLanguage() === null
+  );
   const [largeDismissed, setLargeDismissed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -299,18 +334,27 @@ function App() {
     return undefined;
   }, [history]);
 
-  // ── 当前编辑内容自动落盘（防刷新/误关丢失）──────────────────────────
+  // ── 当前编辑内容与它的语言自动落盘（防刷新/误关丢失）──────────────────
+  // 语言必须跟内容一起存：只恢复内容、不恢复语言，刷新后一段 Markdown 就会被当成
+  // 初始的 JSON 上色（错的配色比没有高亮更容易看错）。
+  // 两者写在同一个 effect 里，是为了让所有会改语言的路径（粘贴识别、手动指定、
+  // 加载历史、加载示例、新页面清空）都自动被覆盖，不必各自记得写一遍。
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        if (code && code.trim()) localStorage.setItem(STORAGE_KEY_DRAFT, code);
-        else localStorage.removeItem(STORAGE_KEY_DRAFT);
+        if (code && code.trim()) {
+          localStorage.setItem(STORAGE_KEY_DRAFT, code);
+          localStorage.setItem(STORAGE_KEY_DRAFT_LANG, language);
+        } else {
+          localStorage.removeItem(STORAGE_KEY_DRAFT);
+          localStorage.removeItem(STORAGE_KEY_DRAFT_LANG);
+        }
       } catch (error) {
         // 存不下草稿就算了，绝不因此干扰用户当前的内容
       }
     }, DRAFT_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [code]);
+  }, [code, language]);
 
   // ── 界面语言持久化 + 同步 <html lang> ──────────────────────────────
   useEffect(() => {
@@ -451,6 +495,14 @@ function App() {
     const position = editor.getPosition();
     if (position) {
       setCursor({ lineNumber: position.lineNumber, column: position.column });
+    }
+
+    // 老草稿（没有 peek.draftLang 的那一份）在这里补算一次语言，
+    // 否则它刷新后只能停在默认的 JSON，与当初粘贴时识别出来的结果不一致。
+    // 直接取编辑器里的内容去识别 —— 与粘贴走同一条链路，不另写一套判断。
+    if (draftNeedsLanguage) {
+      const model = editor.getModel();
+      if (model) runDetection(model.getValue());
     }
 
     // 状态栏的行列显示

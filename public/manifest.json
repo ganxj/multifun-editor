@@ -3,9 +3,15 @@
   "name": "peek 一瞥",
   "icons": [
     {
-      "src": "img/logo.png",
+      "src": "img/pwa-192.png",
       "type": "image/png",
-      "sizes": "any",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "img/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any"
     }
   ],
